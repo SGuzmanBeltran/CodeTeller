@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hexagonal Architecture</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --background: #d9d9d9;
+            --text: #353535;
+            --muted: #505050;
+            --core: #005b96;
+            --contract: #bfd4e3;
+            --adapter: #286575;
+            --piece: #eef3f6;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100svh;
+            display: grid;
+            place-items: center;
+            background: var(--background);
+            color: var(--text);
+            font-family: "Trebuchet MS", sans-serif;
+        }
+
+        main {
+            width: min(100%, 800px);
+            padding: 28px 16px;
+            text-align: center;
+        }
+
+        h1 { margin: 0 0 10px; color: var(--core); font-size: 24px; font-weight: 500; }
+        p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+        .diagram {
+            position: relative;
+            width: min(100%, 660px);
+            height: 480px;
+            margin: 24px auto 12px;
+            font-family: "Courier New", monospace;
+        }
+
+        .core {
+            position: absolute;
+            inset: 92px 0;
+            border: 4px solid var(--core);
+            border-radius: 19px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            padding: 50px 12px;
+        }
+
+        .core h2 { margin: 0; color: var(--core); font-size: 24px; font-weight: normal; }
+        .core p { max-width: 100%; font-family: "Trebuchet MS", sans-serif; font-size: 14px; }
+        .core .contracts { margin-top: 6px; font-size: 12px; }
+
+        .port { position: absolute; height: 110px; }
+        .input { top: 30px; left: 28%; width: 44%; }
+        .output { bottom: 30px; width: 43%; }
+        .repository { left: 3%; }
+        .mailer { right: 3%; }
+
+        .direction {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            color: var(--muted);
+            font-family: "Trebuchet MS", sans-serif;
+            font-size: 12px;
+        }
+
+        .input .direction { top: -24px; }
+        .output .direction { bottom: -24px; }
+
+        .socket {
+            position: absolute;
+            width: 100%;
+            height: 48px;
+            border: 3px solid var(--core);
+            background: var(--background);
+        }
+
+        .input .socket { bottom: 0; border-top: 0; border-radius: 0 0 5px 5px; }
+        .output .socket { top: 0; border-bottom: 0; border-radius: 5px 5px 0 0; }
+
+        .contract {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 26px;
+            display: grid;
+            place-items: center;
+            background: var(--contract);
+            color: #243d4e;
+            font-size: 11px;
+        }
+
+        .input .contract { bottom: 0; }
+        .output .contract { top: 0; }
+
+        .adapter {
+            position: absolute;
+            left: 6px;
+            width: calc(100% - 12px);
+            height: 84px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 5px;
+            border: 3px solid var(--adapter);
+            border-radius: 6px;
+            background: var(--piece);
+            color: var(--adapter);
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .input .adapter { top: 0; }
+        .output .adapter { bottom: 0; }
+        .adapter-name { font-size: 12px; }
+        .relation { font-family: "Trebuchet MS", sans-serif; font-size: 12px; }
+        .adapter:hover { background: #ffffff; }
+        .adapter:focus-visible { outline: 2px solid var(--core); outline-offset: 4px; }
+        .adapter:disabled { cursor: default; }
+        .adapter.alternative { border-color: var(--core); color: var(--core); }
+        .input .swapping { animation: replace-input 600ms ease-in-out; }
+        .output .swapping { animation: replace-output 600ms ease-in-out; }
+
+        @keyframes replace-input {
+            40%, 55% { transform: translateY(-24px); opacity: 0; }
+        }
+
+        @keyframes replace-output {
+            40%, 55% { transform: translateY(24px); opacity: 0; }
+        }
+
+        pre {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        code { font-family: "Courier New", monospace; }
+        .implementation { color: var(--adapter); }
+        .principle { margin-top: 16px; color: var(--core); font-size: 14px; }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .input .swapping, .output .swapping { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Hexagonal Architecture</h1>
+        <p>Adapters change. Business logic stays the same.</p>
+
+        <section class="diagram" aria-label="OrderService and its input and output ports">
+            <div class="core">
+                <h2>OrderService</h2>
+                <p>Application + domain</p>
+                <p>Validates the order and calculates the total.</p>
+                <p class="contracts">Implements CreateOrder<br>Uses OrderRepository and Mailer</p>
+            </div>
+
+            <div class="port input" data-port="entry">
+                <span class="direction">Input</span>
+                <div class="socket"><span class="contract">CreateOrder</span></div>
+                <button class="adapter" type="button" title="Change input adapter" aria-label="Change adapter for CreateOrder: HttpAdapter">
+                    <span class="adapter-name">HttpAdapter</span>
+                    <span class="relation">Invokes the port</span>
+                </button>
+            </div>
+
+            <div class="port output repository" data-port="repository">
+                <div class="socket"><span class="contract">OrderRepository</span></div>
+                <button class="adapter" type="button" title="Change storage adapter" aria-label="Change adapter for OrderRepository: PostgreSQL">
+                    <span class="relation">Implements the port</span>
+                    <span class="adapter-name">PostgreSQL</span>
+                </button>
+                <span class="direction">Output / storage</span>
+            </div>
+
+            <div class="port output mailer" data-port="mailer">
+                <div class="socket"><span class="contract">Mailer</span></div>
+                <button class="adapter" type="button" title="Change email adapter" aria-label="Change adapter for Mailer: SMTP">
+                    <span class="relation">Implements the port</span>
+                    <span class="adapter-name">SMTP</span>
+                </button>
+                <span class="direction">Output / email</span>
+            </div>
+        </section>
+
+        <pre><code>service = OrderService(
+    repository=<span class="implementation" id="repository-code">PostgresRepository</span>(),
+    mailer=<span class="implementation" id="mailer-code">SmtpMailer</span>()
+)
+entry = <span class="implementation" id="entry-code">HttpAdapter</span>(service)</code></pre>
+        <p class="principle">The core defines the ports; adapters depend on them.</p>
+        <p class="sr-only" role="status" id="change-status"></p>
+    </main>
+    <script>
+        const examples = {
+            entry: [
+                { label: 'HttpAdapter', code: 'HttpAdapter' },
+                { label: 'CliAdapter', code: 'CliAdapter' }
+            ],
+            repository: [
+                { label: 'PostgreSQL', code: 'PostgresRepository' },
+                { label: 'In memory', code: 'InMemoryRepository' }
+            ],
+            mailer: [
+                { label: 'SMTP', code: 'SmtpMailer' },
+                { label: 'FakeMailer', code: 'FakeMailer' }
+            ]
+        };
+
+        document.querySelectorAll('.port').forEach(function (port) {
+            const button = port.querySelector('button');
+            const name = port.querySelector('.adapter-name');
+            const contract = port.querySelector('.contract').textContent;
+            const options = examples[port.dataset.port];
+            const code = document.getElementById(port.dataset.port + '-code');
+            let selected = 0;
+
+            button.addEventListener('click', function () {
+                if (button.disabled) return;
+                const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+                button.disabled = true;
+                button.classList.add('swapping');
+
+                setTimeout(function () {
+                    selected = (selected + 1) % options.length;
+                    name.textContent = options[selected].label;
+                    code.textContent = options[selected].code;
+                    button.classList.toggle('alternative', selected !== 0);
+                    button.setAttribute('aria-label', 'Change adapter for ' + contract + ': ' + name.textContent);
+                    document.getElementById('change-status').textContent = contract + ': ' + name.textContent + '. OrderService stays the same.';
+                }, reducedMotion ? 0 : 260);
+
+                setTimeout(function () {
+                    button.classList.remove('swapping');
+                    button.disabled = false;
+                }, reducedMotion ? 0 : 600);
+            });
+        });
+    </script>
+</body>
+</html>

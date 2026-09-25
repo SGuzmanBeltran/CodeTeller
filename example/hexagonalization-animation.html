@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inyeccion de dependencias</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --background: #d9d9d9;
+            --text: #353535;
+            --muted: #505050;
+            --storage: #005b96;
+            --contract: #bfd4e3;
+            --dependency: #286575;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100svh;
+            display: grid;
+            place-items: center;
+            background: var(--background);
+            color: var(--text);
+            font-family: "Trebuchet MS", sans-serif;
+        }
+
+        main {
+            width: min(100%, 580px);
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        h1 { margin: 0 0 12px; font-size: 24px; font-weight: 500; color: var(--storage); }
+        p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+        .diagram {
+            position: relative;
+            width: min(100%, 440px);
+            aspect-ratio: 440 / 350;
+            margin: 24px auto 0;
+            font-family: "Courier New", monospace;
+        }
+
+        .storage {
+            position: absolute;
+            inset: 30% 7% 12%;
+            border: 4px solid var(--storage);
+            border-radius: 19px;
+        }
+
+        .storage-name {
+            position: absolute;
+            bottom: 12px;
+            left: 13px;
+            color: var(--storage);
+            font-size: 18px;
+        }
+
+        .socket {
+            position: absolute;
+            top: 30%;
+            left: 30%;
+            width: 40%;
+            height: 19%;
+            border: 4px solid var(--storage);
+            border-top: 0;
+            border-radius: 0 0 5px 5px;
+            background: var(--background);
+        }
+
+        .contract {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 25px;
+            display: grid;
+            place-items: center;
+            background: var(--contract);
+            color: #243d4e;
+            font-size: 13px;
+        }
+
+        .dependency {
+            position: absolute;
+            left: 32%;
+            top: 18%;
+            width: 36%;
+            height: 23%;
+            border: 4px solid var(--storage);
+            border-radius: 7px;
+            background: #eef3f6;
+        }
+
+        .dependency-name {
+            position: absolute;
+            bottom: 7px;
+            left: 0;
+            width: 100%;
+            font-size: 11px;
+            color: var(--storage);
+        }
+
+        .key {
+            position: absolute;
+            width: 66%;
+            height: 65%;
+            top: -32%;
+            left: 17%;
+            display: grid;
+            place-items: center;
+            border: 3px solid var(--dependency);
+            outline: 5px solid var(--background);
+            border-radius: 9px;
+            background: var(--background);
+            color: var(--dependency);
+            font-size: 10px;
+        }
+
+        .dependency.swapping { animation: inject 650ms ease-in-out; }
+
+        @keyframes inject {
+            40%, 55% { transform: translateY(-42px); opacity: 0; }
+        }
+
+        pre {
+            margin: 0 0 24px;
+            min-height: 44px;
+            font-size: 13px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            color: var(--muted);
+        }
+
+        code { font-family: "Courier New", monospace; }
+        #implementation { color: var(--dependency); }
+
+        button {
+            padding: 10px 16px;
+            border: 1px solid var(--storage);
+            border-radius: 5px;
+            background: var(--storage);
+            color: #ffffff;
+            font: inherit;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        button:hover { background: #004777; border-color: #004777; }
+        button:focus-visible { outline: 2px solid var(--dependency); outline-offset: 4px; }
+        button:disabled { cursor: default; opacity: .6; }
+        @media (prefers-reduced-motion: reduce) {
+            .dependency.swapping { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Inyeccion de dependencias</h1>
+        <p>La dependencia cambia. AWSStorage sigue igual.</p>
+
+        <div class="diagram" role="img" aria-label="AESEncryption, con su KeyStore, encaja en el contrato Encryption de AWSStorage.">
+            <div class="storage"><span class="storage-name">AWSStorage</span></div>
+            <div class="socket"><span class="contract">Encryption</span></div>
+            <div class="dependency">
+                <span class="key">KeyStore</span>
+                <span class="dependency-name">AESEncryption</span>
+            </div>
+        </div>
+
+        <pre aria-live="polite"><code>encryption = <span id="implementation">AESEncryption</span>(key_store)
+storage = AWSStorage(encryption)</code></pre>
+        <button type="button">Cambiar dependencia</button>
+    </main>
+    <script>
+        const button = document.querySelector('button');
+        const dependency = document.querySelector('.dependency');
+        const diagram = document.querySelector('.diagram');
+        const implementations = ['AESEncryption', 'RSAEncryption', 'FakeEncryption'];
+        let selected = 0;
+
+        button.addEventListener('click', function () {
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            button.disabled = true;
+            dependency.classList.add('swapping');
+
+            setTimeout(function () {
+                selected = (selected + 1) % implementations.length;
+                const name = implementations[selected];
+                document.querySelector('.dependency-name').textContent = name;
+                document.querySelector('#implementation').textContent = name;
+                diagram.setAttribute('aria-label', name + ', con su KeyStore, encaja en el contrato Encryption de AWSStorage.');
+                dependency.style.borderColor = selected ? 'var(--dependency)' : 'var(--storage)';
+                document.querySelector('.dependency-name').style.color = selected ? 'var(--dependency)' : 'var(--storage)';
+            }, reducedMotion ? 0 : 280);
+
+            setTimeout(function () {
+                dependency.classList.remove('swapping');
+                button.disabled = false;
+            }, reducedMotion ? 0 : 650);
+        });
+    </script>
+</body>
+</html>
