@@ -22,7 +22,13 @@ export function AppHeader({
   return (
     <header className={styles.header}>
       <div className={styles.brand}>
-        <span className={styles.mark} aria-hidden="true">CT</span>
+        <span className={styles.mark} aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="m16 3 11 6.4v13.2L16 29 5 22.6V9.4L16 3Z" />
+            <path d="m5.5 9.7 10.5 6.1 10.5-6.1M16 16v12" />
+            <path d="m11.3 6.2 10.8 6.3v7.1" />
+          </svg>
+        </span>
         <span className={styles.name}>CodeTeller</span>
         <span className={styles.description}>{copy.description}</span>
       </div>
