@@ -15,15 +15,15 @@ Instead of memorizing definitions, players start with a system that has a proble
 
 ## First module: Dependency Injection
 
-The module has six sequential challenges: constructor injection, the composition root, test doubles, service locators, the distinction between DI and DIP, and a provider-switching capstone.
+The module has seven sequential challenges: constructor injection of the MongoDB client, extraction of the storage adapter, the composition root, test doubles, service locators, the distinction between DI and DIP, and a provider-switching capstone.
 
-The first challenge starts with `OrderService` constructing a MongoDB client and inserting orders into a collection directly. Learners extract `MongoOrderStorage` and inject it through the constructor; later challenges introduce the `Storage` contract. Passing a challenge unlocks the next one. Checks validate the selected code choices and update the diagram; they do not execute arbitrary Python.
+The first challenge starts with `OrderService` constructing a MongoDB client and inserting orders into a collection directly. Learners first inject the `MongoClient` through the constructor; the next challenge extracts `MongoOrderStorage` and injects it instead, and later challenges introduce the `Storage` contract. Passing a challenge unlocks the next one. Checks validate the selected code choices and update the diagram; they do not execute arbitrary Python.
 
 Options are shuffled on each visit. Each card always shows its category, title, and code; categories describe the technique without judging it. Distractors are plausible on purpose (an injected MongoDB client, mongomock, a service locator, an optional mailer); after each check, the chosen options reveal what they actually achieve, and the full explanation set appears once the challenge is passed.
 
 The diagram escalates with the learner instead of showing a finished design up front: the first challenge starts with a core pointing straight at a MongoDB client, the contract appears in challenges that introduce it, and a test implementation only shows up after it has been injected. That state is derived from the selected choices by `getDiagramState` in `src/data/diagramState.ts`. The core node itself never dumps raw code: `buildCoreSummary` renders a one- or two-sentence summary of what the service does with its dependencies (each option card already shows its own snippet). Selecting anything outside the answer taints the state (`hasResidue`): the diagram falls back to the original coupling, and when the achieved fix points at a different node than the leftover, both are drawn: the fix on top, the coupling that is still standing below.
 
-See the [introductory DI module specification](docs/di-module.md) for a proposed four-challenge learning path. The running app still has six challenges.
+See the [introductory DI module specification](docs/di-module.md) for the five-challenge learning path. The running app currently implements its first challenge (receive the client) plus the pre-existing challenges.
 
 ## Tech stack
 

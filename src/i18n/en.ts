@@ -74,7 +74,29 @@ export const en = {
   },
   levels: {
     'constructor-injection': {
-      eyebrow: 'CHALLENGE 01 · SPLIT AND RECEIVE',
+      eyebrow: 'CHALLENGE 01 · RECEIVE THE CLIENT',
+      title: 'OrderService builds its own MongoDB client',
+      introduction: 'OrderService creates a pymongo.MongoClient inside its constructor and uses it in place to insert the order into the shop.orders collection with insert_one. While the service decides how to build the client, any configuration change means editing it.',
+      objectiveLabel: 'GOAL',
+      objective: 'OrderService should receive an already-built MongoClient instead of creating it.',
+      conceptLabel: 'KEY IDEA',
+      conceptTag: 'CONSTRUCTOR DI',
+      concept: 'Hand a collaborator from the outside instead of building it inside. The service still speaks MongoDB; only who creates the client changes.',
+      hintLabel: 'I need a hint',
+      hint: 'Which __init__ line calls pymongo.MongoClient(...)? That construction must leave the service; the client must arrive as an argument.',
+      taskTitle: 'Move client creation out of the service',
+      taskSubtitle: 'Only one change stops building the client and receives it through the constructor.',
+      successDescription: 'OrderService no longer creates MongoClient; its caller hands it over. The service still speaks MongoDB: we changed who creates the client, not which API the service uses.',
+      failureDescription: 'Check the marked options: the service still decides how to create its client, or it grabs it from a global instead of receiving it.',
+      options: {
+        'inject-client': { category: 'CONSTRUCTOR INJECTION', title: 'Receive MongoClient in the constructor', explanation: 'Correct: the service receives the client instead of building it. That is DI. It still knows MongoDB and uses insert_one; that limitation motivates the next challenge.' },
+        'lazy-client': { category: 'LAZY INITIALIZATION', title: 'Build MongoClient on first use in place', explanation: 'Construction happens later, but OrderService still decides how to create its client.' },
+        'module-singleton': { category: 'SHARED GLOBAL', title: 'Import a global MongoClient from another module', explanation: 'The client is created outside, but the consumer grabs it through global state, not through its constructor.' },
+        'inject-settings': { category: 'CONFIG INJECTION', title: 'Receive Settings and build the client inside', explanation: 'Configuration is injected, but the service still builds the client with MongoClient(settings.mongo_uri).' },
+      },
+    },
+    'storage-adapter': {
+      eyebrow: 'CHALLENGE 02 · SPLIT AND RECEIVE',
       title: 'The service speaks MongoDB',
       introduction: 'OrderService places orders by inserting documents into a MongoDB collection with a client it creates itself. Business logic and infrastructure share the same method: testing orders requires MongoDB or a mock of its client, and that logic cannot be reused with another storage provider.',
       objectiveLabel: 'GOAL',
@@ -97,7 +119,7 @@ export const en = {
       },
     },
     'composition-root': {
-      eyebrow: 'CHALLENGE 02 · WIRING',
+      eyebrow: 'CHALLENGE 03 · WIRING',
       title: 'Who chooses MongoDB?',
       introduction: 'OrderService already asks for Storage. But in production someone must build MongoClient, pass it to MongoOrderStorage and connect that piece to the service. Nobody does that yet: the app boots with a TODO.',
       objectiveLabel: 'GOAL',
@@ -119,7 +141,7 @@ export const en = {
       },
     },
     'test-double': {
-      eyebrow: 'CHALLENGE 03 · TESTING',
+      eyebrow: 'CHALLENGE 04 · TESTING',
       title: 'A test should not start MongoDB',
       introduction: 'The pipeline takes 4 minutes because every order test boots MongoDB in Docker. The logic you want to test does not depend on collection operations.',
       objectiveLabel: 'GOAL',
@@ -141,7 +163,7 @@ export const en = {
       },
     },
     'service-locator': {
-      eyebrow: 'CHALLENGE 04 · HIDDEN DEPENDENCY',
+      eyebrow: 'CHALLENGE 05 · HIDDEN DEPENDENCY',
       title: 'A container can hide the dependency',
       introduction: 'A teammate “applied DI”: they removed MongoOrderStorage from the constructor and now OrderService asks a container for what it needs. The test still cannot replace anything without touching that container.',
       objectiveLabel: 'GOAL',
@@ -163,7 +185,7 @@ export const en = {
       },
     },
     'di-vs-dip': {
-      eyebrow: 'CHALLENGE 05 · TWO DISTINCT IDEAS',
+      eyebrow: 'CHALLENGE 06 · TWO DISTINCT IDEAS',
       title: 'DI does not guarantee DIP by itself',
       introduction: 'OrderService(storage: MongoOrderStorage) already receives its dependency. PostgresStorage arrives and you must edit the service, its imports and its tests… again.',
       objectiveLabel: 'GOAL',
@@ -185,7 +207,7 @@ export const en = {
       },
     },
     capstone: {
-      eyebrow: 'CHALLENGE 06 · CAPSTONE',
+      eyebrow: 'CHALLENGE 07 · CAPSTONE',
       title: 'Change the mail provider without changing the service',
       introduction: 'NotificationService instantiates SmtpMailer. Marketing wants to switch providers next sprint, and QA wants to test the full flow without network or credentials.',
       objectiveLabel: 'GOAL',

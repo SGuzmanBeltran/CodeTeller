@@ -1,5 +1,6 @@
 export type LevelId =
   | 'constructor-injection'
+  | 'storage-adapter'
   | 'composition-root'
   | 'test-double'
   | 'service-locator'
@@ -71,8 +72,50 @@ export function shuffleChoices(choices: CodeChoice[]): CodeChoice[] {
 }
 
 export const diLevels: DILevel[] = [
+  {
+    id: 'constructor-injection',
+    correctChoiceIds: ['inject-client'],
+    choices: [
+      {
+        id: 'inject-client',
+        code: `def __init__(self, client: pymongo.MongoClient):
+    self.client = client`,
+        effect: 'injection',
+      },
+      {
+        id: 'lazy-client',
+        code: `def place(self, order):
+    if self._mongo is None:
+        self._mongo = pymongo.MongoClient("mongodb://localhost:27017")
+    self._mongo["shop"]["orders"].insert_one(order)`,
+      },
+      {
+        id: 'module-singleton',
+        code: `# storage.py
+client = pymongo.MongoClient("mongodb://localhost:27017")`,
+      },
+      {
+        id: 'inject-settings',
+        code: `def __init__(self, settings: Settings):
+    self.client = pymongo.MongoClient(settings.mongo_uri)`,
+      },
+    ],
+    diagram: {
+      coreName: 'OrderService',
+      coreDescription: 'Places orders.',
+      contractName: 'Storage',
+      contractDescription: 'Storage contract',
+      coupledNode: 'pymongo.MongoClient',
+      productionImplementation: 'pymongo.MongoClient',
+      testImplementation: 'FakeStorage',
+      startsInjected: false,
+      startsAbstract: false,
+      startsWithTestDouble: false,
+      hidesContractInitially: true,
+    },
+  },
   storageLevel(
-    'constructor-injection',
+    'storage-adapter',
     ['extract-storage', 'inject-storage'],
     [
       {

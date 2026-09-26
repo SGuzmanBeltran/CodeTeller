@@ -10,15 +10,105 @@ Al terminar, la persona debe poder explicar quién construye una dependencia y q
 
 ## Decisiones para esta versión
 
-- Recorrido principal: `constructor-injection` -> `composition-root` -> `test-double` -> `capstone`. Cada reto responde una pregunta nueva y se desbloquea al superar el anterior. No añadir más niveles principales por ahora.
+- Recorrido principal: `constructor-injection` -> `storage-adapter` -> `composition-root` -> `test-double` -> `capstone`. El primer reto enseña únicamente a recibir el cliente MongoDB; cada reto posterior añade una pieza del patrón completo. No añadir más niveles principales por ahora.
 - `service-locator` queda como profundización posterior sobre dependencias ocultas; `di-vs-dip`, como puente separado hacia DIP (la D de SOLID). No cuentan para completar este módulo. Si se conservan en el producto, ofrecerlos fuera del recorrido principal, no intercalados aquí.
-- Mantener `OrderService` y `MongoOrderStorage` con esos nombres durante los tres primeros retos. El contrato `Storage` **ya existe y se muestra** en el contexto inicial, sin pedir al alumno que lo invente. Es infraestructura didáctica para que el código Python sea coherente, no el concepto que se examina. En el reto final se proporciona de igual forma `Mailer`.
+- Mantener `OrderService`, `MongoClient` y `MongoOrderStorage` como hilo conductor. No mostrar ni exigir `Storage` en los primeros retos: introducir ese contrato como soporte para sustituir implementaciones en el reto de pruebas. No evaluar DIP en este módulo; el contrato se explica solo hasta donde hace falta para entender que real y fake ofrecen la misma operación. En el reto integrador se proporciona de igual forma `Mailer`.
 - Cada reto tiene un problema concreto, una pregunta, una decisión mediante código y una consecuencia visible. Evitar dar una definición extensa antes de que aparezca la necesidad.
 - Se permiten varias opciones simultáneas; para aprobar se exige exactamente el conjunto correcto, sin opciones extra. Al fallar se explican solo las seleccionadas; al aprobar se revelan todas. Conservar los identificadores de opción existentes siempre que sea posible.
 
-## Base compartida de los retos 1 a 3
+## Hilo conductor
 
-El servicio coloca pedidos. Al inicio valida el identificador, crea `pymongo.MongoClient` y llama a `client["shop"]["orders"].insert_one(order)` dentro de `place`. El proyecto ya dispone del siguiente contrato, mostrado en el contexto del reto 1:
+Los cinco retos conservan el mismo `OrderService` de pedidos durante los cuatro primeros pasos. El punto de partida crea `MongoClient` dentro del servicio y usa la colección `shop.orders` para insertar el pedido:
+
+```python
+class OrderService:
+    def __init__(self):
+        self.client = pymongo.MongoClient("mongodb://localhost:27017")
+
+    def place(self, order: dict) -> None:
+        if not order.get("id"):
+            raise ValueError("Missing order id")
+        self.client["shop"]["orders"].insert_one(order)
+```
+
+En el reto 1, `OrderService` recibe `MongoClient` pero todavía conoce MongoDB y `insert_one`. En el reto 2, `MongoOrderStorage` asume esa responsabilidad y `OrderService` recibe ese adaptador concreto. En el reto 3 se aprende quién construye ambos objetos. En el reto 4 se entrega un `FakeStorage` al mismo servicio para probar el caso sin MongoDB.
+
+Usar `MongoClient` es un objeto cliente; PyMongo normalmente abre conexiones de forma perezosa cuando se necesita operar. No describir la inyección del cliente como “desacoplar OrderService de MongoDB”: desacopla la creación/configuración del cliente, pero el servicio aún depende de la API MongoDB. Esa limitación prepara la pregunta del segundo reto.
+
+## Reto 1: recibir el cliente (`constructor-injection`)
+
+**Pregunta:** ¿Cómo puede `OrderService` usar MongoDB sin crear él mismo el cliente?
+
+**1. Objetivo.** Enseñar la mecánica mínima de DI por constructor: el servicio recibe un `MongoClient` ya construido. El reto resuelve quién crea el cliente dentro del servicio, no quién lo construye en toda la aplicación ni cómo eliminar la dependencia de MongoDB.
+
+**Estado inicial:** `OrderService.__init__` llama a `pymongo.MongoClient(...)`; `place` valida el pedido y ejecuta `self.client["shop"]["orders"].insert_one(order)`.
+
+**2. Opciones de código (selección única válida).**
+
+| ID | Cambio propuesto | Papel y explicación al revelar |
+| --- | --- | --- |
+| `inject-client` | `def __init__(self, client: pymongo.MongoClient): self.client = client`; `place` sigue usando la colección y `insert_one`. | Correcta: el servicio recibe el cliente en vez de construirlo. Esto es DI. Aún conoce MongoDB; esa es la limitación que motiva el reto 2. |
+| `lazy-client` | Crear `MongoClient` dentro de `place` en el primer uso. | Retrasa la creación, pero `OrderService` sigue decidiendo cómo crear su cliente. |
+| `module-singleton` | Importar un `MongoClient` global de otro módulo. | El cliente se crea fuera, pero el consumidor lo obtiene mediante estado global, no por su constructor. |
+| `inject-settings` | Recibir `Settings` y llamar a `MongoClient(settings.mongo_uri)` dentro de `OrderService`. | Se inyecta configuración, pero el servicio sigue construyendo el cliente. |
+
+El llamador entrega un cliente en el ejemplo, pero no se enseña aún dónde se construye en producción. Esa pregunta se reserva para el reto 3.
+
+**3. Interacción del sistema.** El diagrama inicia con `OrderService` creando `pymongo.MongoClient`. Al seleccionar `inject-client`, muestra que el cliente llega desde fuera, pero mantiene visible que el servicio conoce `MongoClient` y la colección. No mostrar `MongoOrderStorage` ni `Storage` todavía. Los distractores conservan la creación dentro del servicio o la esconden en un global. Tras comprobar, explicar que inyectar el cliente mejora quién controla su creación/configuración, pero no elimina el acoplamiento a MongoDB ni basta por sí solo para probar la lógica sin un cliente compatible.
+
+**4. Respuesta correcta.** `['inject-client']`. Cierre: “OrderService ya no crea MongoClient; alguien que lo llama se lo entrega. El servicio aún habla MongoDB: cambiamos quién crea el cliente, no qué API usa el servicio”.
+
+**Comprobación de comprensión:** preguntar qué línea dejó de construir el cliente y qué operación de MongoDB sigue dentro de `OrderService`.
+
+## Reto 2: separar el almacenamiento (`storage-adapter`)
+
+**Pregunta:** `OrderService` ya recibe MongoClient. ¿Por qué sigue siendo difícil cambiar MongoDB o probar el servicio con un almacenamiento falso?
+
+**1. Objetivo.** Extraer colección e inserción a `MongoOrderStorage`, y reemplazar el cliente en el constructor del servicio por el storage. Este reto se apoya en la mecánica de inyección aprendida en el reto 1: no vuelve a explicar desde cero cómo pasar un argumento; enseña que conviene inyectar el colaborador que representa la operación que el negocio necesita, en vez de una API de infraestructura.
+
+**2. Opciones de código (selección múltiple).**
+
+| ID | Cambio propuesto | Papel y explicación al revelar |
+| --- | --- | --- |
+| `extract-storage` | Definir `MongoOrderStorage(client)` con `save(order)`, que llama a `client["shop"]["orders"].insert_one(order)`. | Correcta, pero sola deja el adaptador sin uso; el servicio sigue recibiendo y usando `MongoClient`. |
+| `inject-storage` | Cambiar el constructor a `def __init__(self, storage: MongoOrderStorage): self.storage = storage`; `place` conserva la validación y llama `self.storage.save(order)`. | Correcta junto con la extracción: el servicio expresa que necesita guardar, no cómo MongoDB lo hace. |
+| `inject-client` | Mantener `MongoClient` como parámetro del constructor y dejar `insert_one` en `place`. | Es DI válida y resuelve el reto 1, pero no alcanza el objetivo nuevo: el negocio todavía usa la API MongoDB. |
+| `storage-factory-in-core` | Crear `MongoOrderStorage` dentro de `OrderService` mediante una factoría privada. | Cambia la forma de organizar el código, pero el consumidor sigue eligiendo su adaptador. |
+
+**3. Interacción del sistema.** Estado inicial: la solución del reto 1, `OrderService` recibe `MongoClient` y llama a la colección. Si se selecciona solo `extract-storage`, mostrar `MongoOrderStorage` desconectado mientras `OrderService` mantiene su código MongoDB. Si se selecciona solo `inject-storage`, mostrar que el servicio espera un storage pero aún no se ha extraído una pieza que implemente `save`. Con ambas y sin extras, mostrar `OrderService -> MongoOrderStorage`; el nodo indica que el adaptador encapsula la colección MongoDB. No mostrar aún el punto de entrada ni un `FakeStorage`: se introducen en retos posteriores.
+
+**4. Respuesta correcta.** `['extract-storage', 'inject-storage']`. Cierre: “El servicio recibe una pieza con una operación de almacenamiento. MongoOrderStorage traduce esa operación a MongoDB. El servicio ya no conoce colecciones ni `insert_one`; aún recibe un tipo concreto, y todavía falta aprender quién construye las piezas”.
+
+**Comprobación de comprensión:** contrastar las firmas `storage: MongoClient` y `storage: MongoOrderStorage`: ¿cuál obliga a `OrderService` a conocer colecciones y por qué?
+
+## Reto 3: conectar las piezas (`composition-root`)
+
+**Pregunta:** Si `OrderService` ya recibe `MongoOrderStorage`, ¿quién crea `MongoClient`, el adaptador y el servicio en producción?
+
+**1. Objetivo.** Conservar el servicio del reto anterior y ensamblar la aplicación en su punto de entrada. La palabra *composition root* nombra el lugar donde se toman decisiones concretas; no implica que siempre exista un archivo llamado `main.py`.
+
+**Estado inicial:** `OrderService` recibe `MongoOrderStorage`, pero el arranque tiene un TODO y no construye ni conecta las piezas. El diagrama debe diferenciar “el servicio admite inyección” de “la aplicación está ensamblada”.
+
+**2. Opciones de código (selección única válida).**
+
+| ID | Cambio propuesto | Papel y explicación al revelar |
+| --- | --- | --- |
+| `wire-at-root` | En el punto de entrada: `client = pymongo.MongoClient("mongodb://localhost:27017"); storage = MongoOrderStorage(client); service = OrderService(storage)`. | Correcta; el composition root construye y conecta cliente, adaptador y servicio. |
+| `inject-settings` | Entregar `Settings` al servicio para que allí llame a `build_storage(settings)`. | El servicio sigue escogiendo y construyendo su infraestructura. |
+| `factory-in-core` | Crear `OrderService(MongoOrderStorage(pymongo.MongoClient(...)))` en una factoría dentro del módulo del servicio. | La factoría sigue llevando el conocimiento de MongoDB al núcleo; una factoría en el borde sería otra historia. |
+| `lazy-init` | Construir `MongoClient` y `MongoOrderStorage` al primer uso en una propiedad del servicio. | Retrasa la decisión pero la mantiene dentro del consumidor. |
+
+**3. Interacción del sistema.** Antes de escoger, mostrar las piezas sin conexión de producción: el servicio requiere storage y el adaptador requiere cliente. Al escoger `wire-at-root`, mostrar `main.py -> MongoClient -> MongoOrderStorage -> OrderService`. Las selecciones incorrectas señalan qué parte sigue construida dentro del consumidor o qué responsabilidad quedó en el núcleo. No mostrar la aplicación como ensamblada solo porque el servicio admite recibir un storage.
+
+**4. Respuesta correcta.** `['wire-at-root']`. Cierre: “El composition root conoce las piezas concretas y las conecta. El servicio no construye ni MongoClient ni MongoOrderStorage”.
+
+**Comprobación de comprensión:** preguntar en qué archivo o capa buscaría el alumno para cambiar de proveedor sin editar `OrderService`.
+
+## Reto 4: probar sin MongoDB (`test-double`)
+
+**Pregunta:** Ahora que `OrderService` recibe un storage, ¿cómo probamos la lógica de pedidos sin MongoDB ni cambios en el servicio?
+
+**1. Objetivo.** Ver una consecuencia concreta de la inyección: construir el mismo servicio con un doble en la prueba, llamar a `place` y comprobar qué se guardó. No basta con instanciar el servicio; hay que verificar comportamiento. Introducir aquí, como parte del scaffolding, un contrato mínimo `Storage` para expresar el método que ya necesitan ambos adaptadores. No enseñar ni nombrar DIP en este reto:
 
 ```python
 from typing import Protocol
@@ -27,80 +117,7 @@ class Storage(Protocol):
     def save(self, order: dict) -> None: ...
 ```
 
-Al finalizar el primer reto, el estado que se arrastra a los siguientes debe ser coherente con esto:
-
-```python
-class MongoOrderStorage:
-    def __init__(self, client: pymongo.MongoClient):
-        self.collection = client["shop"]["orders"]
-
-    def save(self, order: dict) -> None:
-        self.collection.insert_one(order)
-
-class OrderService:
-    def __init__(self, storage: Storage):
-        self.storage = storage
-
-    def place(self, order: dict) -> None:
-        if not order.get("id"):
-            raise ValueError("Missing order id")
-        self.storage.save(order)
-```
-
-`Storage` es una anotación y un contrato estructural en Python, no una garantía en tiempo de ejecución. La lección aquí es *cómo* se entrega el colaborador; el porqué de orientar las dependencias hacia abstracciones se trata después en DIP. No afirmar que DI y DIP son sinónimos.
-
-## Reto 1: separar y recibir (`constructor-injection`)
-
-**Pregunta:** Si `OrderService` crea un cliente MongoDB y usa su colección, ¿cómo hacemos que reciba a quien guarda el pedido?
-
-**1. Objetivo.** Sacar del servicio la creación del cliente y los detalles de colección y `insert_one`, sin cambiar la validación del pedido. Enseñar dos momentos distintos dentro de **un solo reto**: extraer el acceso a MongoDB a `MongoOrderStorage` separa responsabilidades; pasar `storage` al constructor es la inyección. `MongoOrderStorage` recibe el cliente, que se construirá en el punto de entrada en el reto 2. El contrato `Storage` ya se proporciona, no es una tercera opción a descubrir.
-
-**2. Opciones de código (selección múltiple).** Mantener las tarjetas actuales, con estos significados y fragmentos representativos:
-
-| ID | Cambio propuesto | Papel y explicación al revelar |
-| --- | --- | --- |
-| `extract-storage` | Definir `MongoOrderStorage(client).save(order)`, que elige `client["shop"]["orders"]` y llama a `insert_one`. | Correcta, pero sola deja una pieza que `OrderService` todavía no utiliza. |
-| `inject-storage` | `def __init__(self, storage: Storage): self.storage = storage`; `place` conserva la validación y termina en `self.storage.save(order)`. | Correcta, pero necesita una implementación que asuma el acceso a MongoDB. |
-| `inject-client` | `def __init__(self, client: pymongo.MongoClient): self.client = client`. | **Sí es DI**, pero no alcanza el objetivo de este reto: el servicio sigue eligiendo colecciones y llamando a `insert_one`. Evitar presentarla como DI inválida. |
-| `lazy-client` | Crear `pymongo.MongoClient` dentro de `place` al primer uso. | Cambia el momento de construcción, no el dueño ni el acoplamiento. |
-| `module-singleton` | Crear un cliente global en un módulo e importarlo en el servicio. | La dependencia no llega explícitamente al constructor; dificulta sustituirla en este ejercicio. |
-
-No hace falta mostrar todo el código anterior dentro de cada tarjeta: sí debe quedar visible qué fragmento se cambia y qué permanece en `OrderService`. Los nombres, el método `save` y el contrato deben coincidir en el enunciado, las tarjetas y el resultado.
-
-**3. Interacción del sistema.** Inicialmente, el diagrama muestra `OrderService` ligado a `pymongo.MongoClient`, sin insinuar que ya se inyecta nada. Al marcar solo `extract-storage`, aparece `MongoOrderStorage` como pieza sin conectar y el servicio sigue acoplado. Al marcar solo `inject-storage`, mostrar la intención de recibir `Storage` pero señalar que aún falta mover el acceso a la colección; **no** dibujar una solución terminada. Con ambas y sin extras, el diagrama muestra `OrderService -> Storage <- MongoOrderStorage`: el servicio recibe un colaborador, no lo crea. Con cualquier distractor seleccionado, la comprobación no aprueba y el diagrama deja visible el acoplamiento que permanece. Tras un fallo, explicar únicamente las tarjetas elegidas y permitir modificar la selección y volver a comprobar.
-
-**4. Respuesta correcta.** `['extract-storage', 'inject-storage']`, sin ninguna opción adicional. Cierre: “Separamos quién sabe de MongoDB de quién coloca pedidos. Luego entregamos esa pieza al servicio por el constructor. Extraer y recibir son decisiones distintas”.
-
-**Comprobación de comprensión:** pedir al alumno identificar qué línea del constructor deja de crear `MongoClient` y qué parte conoce ahora la colección y `insert_one`. La pista puede recordar las dos responsabilidades, pero no enumerar los IDs correctos.
-
-## Reto 2: conectar la aplicación (`composition-root`)
-
-**Pregunta:** Si `OrderService` ya recibe `Storage`, ¿quién crea `MongoClient` y `MongoOrderStorage` en producción?
-
-**1. Objetivo.** Conservar el servicio del reto anterior y ensamblar la aplicación en su punto de entrada. La palabra *composition root* nombra el lugar donde se toman decisiones concretas; no implica que siempre exista un archivo llamado `main.py`.
-
-**Estado inicial:** el servicio ya pide `Storage`, pero el arranque tiene un TODO y no construye ni conecta el adaptador. El diagrama debe diferenciar “declara una dependencia” de “la aplicación ya está ensamblada”.
-
-**2. Opciones de código (selección única válida).**
-
-| ID | Cambio propuesto | Papel y explicación al revelar |
-| --- | --- | --- |
-| `wire-at-root` | En el punto de entrada: `client = pymongo.MongoClient("mongodb://localhost:27017"); storage = MongoOrderStorage(client); service = OrderService(storage)`. | Correcta; el borde de la aplicación construye cliente y adaptador. |
-| `inject-settings` | Entregar `Settings` al servicio para que allí llame a `build_storage(settings)`. | El servicio sigue escogiendo y construyendo su infraestructura. |
-| `factory-in-core` | Crear `OrderService(MongoOrderStorage(pymongo.MongoClient(...)))` en una factoría dentro del módulo del servicio. | La factoría sigue llevando el conocimiento de MongoDB al núcleo; una factoría en el borde sería otra historia. |
-| `lazy-init` | Construir `MongoClient` y `MongoOrderStorage` al primer uso en una propiedad del servicio. | Retrasa la decisión pero la mantiene dentro del consumidor. |
-
-**3. Interacción del sistema.** Antes de escoger, mostrar el servicio esperando una instancia: conoce `Storage`, pero la app no está conectada. Al escoger `wire-at-root`, mostrar que el punto de entrada construye `MongoClient` y entrega `MongoOrderStorage`. Las selecciones incorrectas muestran dónde permanece la decisión concreta; no se debe indicar “listo para producción” simplemente porque el servicio declara `Storage`. Como en el reto anterior, las tarjetas se pueden cambiar y volver a comprobar.
-
-**4. Respuesta correcta.** `['wire-at-root']`. Cierre: “El servicio declara qué necesita; el punto de entrada decide con qué satisfacerlo. En otro contexto se podría conectar otra implementación sin mover esa decisión al servicio”.
-
-**Comprobación de comprensión:** preguntar en qué archivo o capa buscaría el alumno para cambiar de proveedor sin editar `OrderService`.
-
-## Reto 3: probar sin MongoDB (`test-double`)
-
-**Pregunta:** ¿Cómo probamos la lógica de pedidos sin arrancar MongoDB ni modificar `OrderService`?
-
-**1. Objetivo.** Observar la ventaja de la inyección: construir el mismo servicio con un doble en la prueba, llamar a `place` y comprobar qué se guardó. No basta con instanciar el servicio; hay que verificar comportamiento. `FakeStorage` está disponible en el enunciado y cumple el contrato ya presentado:
+Cambiar la anotación del constructor de `MongoOrderStorage` a `Storage`. Explicar que `Protocol` ayuda al análisis estático a reconocer que el adaptador real y el fake ofrecen el mismo método; no es una pieza que el servicio construya en tiempo de ejecución. `FakeStorage` está disponible en el enunciado y cumple ese contrato:
 
 ```python
 class FakeStorage:
@@ -120,45 +137,48 @@ class FakeStorage:
 | `monkeypatch-mongo` | Parchear en el test un import de `MongoOrderStorage`. | Aquí es innecesario y más frágil que entregar el doble por el constructor; el servicio no importa ese adaptador. |
 | `skip-without-mongo` | Saltar la prueba si MongoDB no está disponible. | Evita la infraestructura dejando la lógica sin comprobar. |
 
-**3. Interacción del sistema.** Estado inicial: producción usa `MongoOrderStorage` y la prueba aún depende de MongoDB. Al escoger `fake-in-test`, añadir `FakeStorage` como implementación usada por el test **sin reemplazar** la de producción y mostrar que `OrderService` no cambia. Al fallar, distinguir “la prueba sigue usando el adaptador”, “requiere parches” y “no se ejecuta”. No prometer que `mongomock` es incorrecto en todas las pruebas. Si el diagrama no representa una operación o una aserción, mostrarlas en la tarjeta y en el feedback; no inventar que el diagrama ejecuta Python.
+**3. Interacción del sistema.** Estado inicial: producción usa `MongoOrderStorage` y la prueba aún depende del adaptador o de MongoDB. Al escoger `fake-in-test`, mostrar el test entregando `FakeStorage` por el mismo constructor y una aserción sobre el pedido guardado; producción sigue usando MongoOrderStorage. Al fallar, distinguir “se prueba el adaptador con mongomock”, “se sustituye con un parche” y “la prueba no se ejecuta”. `mongomock` puede ser válido para probar el adaptador; no es la respuesta cuando el objetivo es aislar la lógica de pedidos. No inventar que el diagrama ejecuta Python: el resultado del test se muestra en la tarjeta/feedback.
 
 **4. Respuesta correcta.** `['fake-in-test']`. Cierre: “Producción y prueba construyen el mismo servicio con colaboradores distintos. La prueba comprueba un pedido guardado sin abrir una conexión”.
 
-**Comprobación de comprensión:** pedir al alumno indicar qué está probando (`OrderService`), qué no está probando (`MongoOrderStorage`) y por qué puede evitar MongoDB.
+**Comprobación de comprensión:** pedir al alumno indicar qué está probando (`OrderService`), qué está reemplazando (`MongoOrderStorage`) y cómo `FakeStorage` permite evitar MongoDB.
 
-## Reto 4: aplicar la idea a correo (`capstone`)
+## Reto 5: repetir el patrón en otro caso (`capstone`)
 
-**Pregunta:** Ante un proveedor de correo que va a cambiar, ¿puedes aplicar la misma idea sin tocar la lógica de notificaciones?
+**Pregunta:** ¿Puedes aplicar todo el patrón para que producción envíe correo y el test verifique el mensaje sin red?
 
-**1. Objetivo.** Repetir el razonamiento en un dominio nuevo con menos orientación: `NotificationService` hoy crea `SmtpMailer`; debe recibir un colaborador y el test debe sustituirlo. El enunciado proporciona `Mailer` con `send(to: str, subject: str, body: str) -> None` y un `FakeMailer` que guarda los mensajes enviados. No se pide diseñar un nuevo contrato desde cero ni aprender DIP aquí. El servicio conserva `send_welcome(address: str)`, que llama a `mailer.send(address, "Welcome", ...)`.
+**1. Objetivo.** Integrar, con menos pistas, las decisiones ya aprendidas: el servicio declara lo que necesita, producción conecta una implementación concreta en el composition root y el test entrega un doble por el mismo constructor. No añadir una nueva técnica. Proporcionar `Mailer` como contrato mínimo en el escenario; el reto mide transferencia de DI, no diseño de abstracciones.
 
 **2. Opciones de código (selección múltiple).**
 
 | ID | Cambio propuesto | Papel y explicación al revelar |
 | --- | --- | --- |
-| `inject-mailer` | `def __init__(self, mailer: Mailer): self.mailer = mailer`; `send_welcome` usa `self.mailer.send(...)`. | Correcta: el servicio deja de crear `SmtpMailer`. |
-| `fake-mailer-test` | `fake = FakeMailer(); service = NotificationService(fake); service.send_welcome("a@example.com"); assert fake.sent[0].to == "a@example.com"`. | Correcta: comprueba que el flujo llama al colaborador sin red. Definir `sent` como registros con el campo `to` en el enunciado. |
-| `optional-mailer` | `mailer: Mailer | None = None` y `self.mailer = mailer or SmtpMailer()`. | El test puede funcionar, pero el servicio sigue eligiendo SMTP si no se le entrega nada. |
-| `patch-smtplib` | Parchear `smtplib.SMTP` en el test. | Puede evitar envíos reales, pero acopla esta prueba a los detalles de SMTP y no resuelve el cambio de proveedor. |
-| `env-mailer` | Elegir `FakeMailer` o `SmtpMailer` según `APP_ENV` dentro del servicio. | El servicio conoce el entorno y las implementaciones; la decisión debería estar fuera. |
+| `inject-mailer` | `def __init__(self, mailer: Mailer): self.mailer = mailer`; `send_welcome` llama `self.mailer.send(...)`. | Correcta: NotificationService deja de construir SMTP y declara qué colaborador necesita. |
+| `wire-mailer-at-root` | Producción: `mailer = SmtpMailer(); service = NotificationService(mailer)` en el punto de entrada. | Correcta: una decisión de producción se conecta fuera del consumidor. |
+| `fake-mailer-test` | El test crea `NotificationService(FakeMailer())`, llama `send_welcome(...)` y comprueba el mensaje guardado por el fake. | Correcta: sustituye SMTP mediante DI y comprueba un resultado sin red. |
+| `optional-mailer` | `mailer: Mailer | None = None` y usar `SmtpMailer()` como valor por defecto. | El servicio aún decide la implementación cuando no recibe argumento. |
+| `patch-smtplib` | Parchear `smtplib.SMTP` en la prueba. | Evita una conexión real, pero prueba detalles del adaptador y no demuestra que el consumidor admita otro colaborador. |
+| `env-mailer` | Elegir `FakeMailer` o `SmtpMailer` por `APP_ENV` dentro de NotificationService. | El consumidor queda encargado de conocer entorno e implementaciones. |
 
-**3. Interacción del sistema.** Comenzar con `NotificationService -> SmtpMailer` y una prueba que depende de red. Una elección parcial permite reconocer qué se ha logrado y qué falta; no declarar victoria hasta que el servicio deje de crear SMTP **y** se compruebe la prueba con el fake. Al completar, mostrar dos conexiones en sus respectivos contextos: producción conecta `SmtpMailer` desde el punto de entrada y el test entrega `FakeMailer`. El servicio utiliza el mismo constructor en ambos. Mantener pistas menos explícitas que en el reto 1; la devolución final debe explicar por qué las dos opciones funcionan juntas.
+El escenario define `FakeMailer.sent` como una lista de mensajes con `to`, `subject` y `body`, y ofrece una aserción completa para que el alumno vea qué significa “probar el comportamiento”.
 
-**4. Respuesta correcta.** `['inject-mailer', 'fake-mailer-test']`. Cierre: “No cambió el servicio para cada entorno: cambió qué se le entrega al construirlo. Producción usa SMTP; el test usa un fake. Eso es DI aplicada a un problema nuevo”.
+**3. Interacción del sistema.** Estado inicial: NotificationService crea SmtpMailer y la prueba depende de red. La selección actualiza por separado consumidor, wiring de producción y test. Si falta una opción correcta, el feedback indica qué parte del patrón no está resuelta; un distractor mantiene visible la decisión oculta. Solo con las tres elecciones correctas se muestran ambos recorridos: `main.py -> SmtpMailer -> NotificationService` y `test -> FakeMailer -> NotificationService`. El servicio es el mismo en producción y pruebas.
 
-**Comprobación de comprensión:** sin revelar tarjetas, pedir que el alumno señale dónde se cambiaría el proveedor real y por qué la prueba sigue funcionando sin SMTP.
+**4. Respuesta correcta.** `['inject-mailer', 'wire-mailer-at-root', 'fake-mailer-test']`, sin opciones extra. Cierre: “DI no es solo recibir un objeto: producción y pruebas construyen sus colaboradores en sus propios contextos y los entregan al mismo consumidor”.
+
+**Comprobación de comprensión:** sin pistas, preguntar dónde se construye el mailer real, qué recibe NotificationService y cómo el test comprueba el envío sin SMTP.
 
 ## Comportamiento común y criterios de aceptación
 
 1. Mantener panel de misión, fragmentos seleccionables, pista bajo demanda, diagrama, botón de comprobar, feedback y avance secuencial. Mostrar el problema antes del vocabulario; cada reto puede nombrar el concepto después de exponerlo. No añadir una pantalla larga de teoría ni ejecutar fragmentos Python.
 2. Barajar las opciones al entrar a un reto; el orden no cambia su ID ni su significado. La selección actualiza la vista previa del diagrama. Comprobar exige igualdad exacta de conjuntos; no aprobar una opción correcta mezclada con un distractor. Si se edita la selección tras comprobar, limpiar el resultado previo.
 3. En un intento incompleto revelar y explicar solo las opciones marcadas, con feedback accionable sobre el objetivo concreto; tras acertar, mostrar la explicación de todas. No llamar “incorrecta en general” a una técnica válida para otro objetivo. Usar texto y estados legibles, no depender solo del color.
-4. El diagrama no debe confundir existencia de un contrato, inyección de una dependencia y ensamblaje efectivo en el punto de entrada. En el reto 1 debe representar la extracción sola como pieza suelta; en el 2 hace falta representar el ensamblaje ausente/presente (el `effect: 'composition'` actual no modifica `getDiagramState`); en el 3 y el 4 distinguir implementaciones de producción y de prueba. Si alguna transición no cabe en los flags actuales, extender **solo** el estado y la vista necesarios para mostrarla con honestidad.
-5. Mantener consistencia entre códigos y resultados: `MongoOrderStorage` en retos 1-3, `Storage.save` para el servicio y ambos adaptadores, `Mailer.send` y `FakeMailer.sent` definidos antes de usarlos. No mostrar un fake incompatible con el tipo que espera el constructor. Los ejemplos de aserción son ilustrativos, no resultados de una ejecución real.
-6. Persistir avance, selección y resultado por reto. Los tres IDs de opción que antes nombraban el proveedor ya se traducen al cargar `codeteller-di-intro-module-v2`; mantener esta compatibilidad. Revisar `diLevels`, `LevelId`, el cálculo de `moduleComplete`, los numeradores y los textos de la portada para que solo los cuatro retos principales cuenten. No borrar ni reinterpretar silenciosamente el progreso de quienes ya empezaron seis retos: mapear IDs y completados que sigan siendo válidos; si el contenido cambia sustancialmente, pedir repetir el reto sin afirmar que ya se ha superado. Preferencias de idioma y tema no se reinician.
-7. Implementar el mismo contenido y matices en español e inglés. Revisar textos en `src/i18n/es.ts` y `src/i18n/en.ts`, datos en `src/data/diModule.ts`, estados del diagrama en `src/data/diagramState.ts`, flujo en `src/App.tsx`, progreso en `src/progress.ts`, componentes existentes solo si hace falta y documentación de portada en `README.md`. No añadir un sistema de puntuación ni nuevos conceptos arquitectónicos al flujo principal.
-8. Probar al menos: extracción sola, inyección sola, solución completa, solución con distractor, selección modificada tras fallo, paso al siguiente reto, recarga con progreso, idiomas ES/EN, finalización tras cuatro retos y usuario con progreso guardado de seis. Ejecutar `pnpm build` y `pnpm lint` después de implementar; verificar también el recorrido manual en móvil y escritorio.
+4. El diagrama no debe confundir inyectar el cliente, inyectar el adaptador y ensamblar la aplicación. En el reto 1 muestra al cliente entregado pero conserva la dependencia MongoDB. En el reto 2 muestra la extracción sola como pieza desconectada y solo celebra la solución cuando el servicio recibe el adaptador. En el 3, representar el wiring ausente/presente (el `effect: 'composition'` actual no modifica `getDiagramState`). En el 4 distinguir implementaciones de producción y de prueba; en el 5 mostrar separadamente los recorridos de producción y test. Extender solo el estado y la vista necesarios para esas transiciones.
+5. Mantener consistencia entre ejemplos: `MongoClient` en el reto 1; `MongoOrderStorage(client)` y `save(order)` desde el reto 2; contrato `Storage.save` y `FakeStorage` desde el reto 4; `Mailer.send` y `FakeMailer.sent` en el reto 5. No mostrar doubles incompatibles con el parámetro que recibe el servicio. Los ejemplos se presentan como código didáctico; no se ejecutan.
+6. El recorrido principal tiene cinco retos. Reordenar los identificadores como `constructor-injection`, nuevo `storage-adapter`, `composition-root`, `test-double`, `capstone`; `service-locator` y `di-vs-dip` quedan fuera de este recorrido y no cuentan para completarlo. Revisar `LevelId`, `diLevels`, numeradores, desbloqueo y `moduleComplete`. Cambia la respuesta correcta del primer reto, así que no conservar un `passed` antiguo como si demostrara el objetivo nuevo: versionar o migrar con claridad el progreso `codeteller-di-intro-module-v2`, preservar idioma/tema y explicar al usuario si debe repetir ese reto. Mapear selecciones antiguas solo cuando su significado siga siendo el mismo.
+7. Implementar ES/EN de manera equivalente. Revisar `src/i18n/es.ts`, `src/i18n/en.ts`, `src/data/diModule.ts`, `src/data/diagramState.ts`, `src/App.tsx`, `src/progress.ts`, los componentes existentes solo si hacen falta y `README.md`. No añadir puntuación ni introducir formalmente SOLID o arquitectura hexagonal en este módulo.
+8. Probar: reto 1 con cliente inyectado y cada distractor; reto 2 con extracción sola, inyección sola, conjunto correcto y distractor; composition root correcto e incorrecto; test fake, mongomock, parche y test omitido; tres decisiones del capstone y cada selección parcial; progreso, desbloqueos, reinicio, recarga y ambos idiomas. Ejecutar `pnpm build` y `pnpm lint` y revisar el flujo manual en móvil y escritorio.
 
 ## Señal de aprendizaje
 
-Tras completar el módulo, preguntar sin opciones: “Un servicio crea un cliente externo y la prueba requiere red: ¿qué cambiarías en el constructor, dónde construirías el cliente real y qué pasarías en la prueba?”. Una respuesta suficiente debe describir quién entrega la dependencia, cómo se conecta en producción y por qué la prueba puede sustituirla. Si varias personas no pueden responder, mejorar las pistas y el feedback del paso concreto donde se pierden antes de añadir otro reto. Los contenedores, DIP y arquitectura hexagonal quedan para módulos posteriores.
+Tras completar el módulo, preguntar sin opciones: “Un servicio crea su propio cliente de base de datos y la prueba requiere una instancia real. ¿Qué cambiarías primero, qué extraerías después, quién conectaría las piezas en producción y qué entregarías al test?”. Una respuesta suficiente distingue inyectar el cliente de encapsular la persistencia, explica el wiring externo y propone un fake para probar la lógica. Si varias personas no pueden responder, mejorar las pistas y el feedback del paso donde se pierden antes de añadir otro reto. Contenedores, DIP formal y arquitectura hexagonal quedan para módulos posteriores.
