@@ -44,3 +44,7 @@ Available checks:
 pnpm build
 pnpm lint
 ```
+
+## Container deployment
+
+Pushes to `main` publish `ghcr.io/sguzmanbeltran/codeteller:latest` for `linux/amd64`. The image contains only the production build and an unprivileged Nginx static server. See the [VPS deployment guide](docs/deployment.md) for Docker Compose and Caddy setup.
