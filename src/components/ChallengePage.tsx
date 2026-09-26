@@ -37,6 +37,16 @@ export function ChallengePage({
   // Choices are shuffled once per level mount (App passes key={level.id}).
   const [choices] = useState(() => shuffleChoices(level.choices))
   const diagramState = getDiagramState(level, selectedOptionIds)
+  const unmodeledChoiceIds = level.choices
+    .filter((choice) => selectedOptionIds.includes(choice.id) && !choice.effect)
+    .map((choice) => choice.id)
+  const missingCorrectChoiceIds = level.correctChoiceIds.filter((id) => !selectedOptionIds.includes(id))
+  const actionableFailure = testResult === 'incomplete' && missingCorrectChoiceIds.length > 0
+    ? missingCorrectChoiceIds
+        .map((id) => levelCopy.missingChoiceFeedback?.[id])
+        .filter((message): message is string => Boolean(message))
+        .join(' ')
+    : ''
 
   function optionState(choiceId: string): { revealed: boolean; verdict: OptionVerdict } {
     const isSelected = selectedOptionIds.includes(choiceId)
@@ -65,6 +75,8 @@ export function ChallengePage({
           copy={copy.architecture}
           diagram={level.diagram}
           isComplete={testResult === 'passed'}
+          levelId={level.id}
+          unmodeledChoiceIds={unmodeledChoiceIds}
           state={diagramState}
         />
 
@@ -98,7 +110,7 @@ export function ChallengePage({
                 </p>
               ) : testResult === 'incomplete' ? (
                 <p className={styles.incomplete} role="status">
-                  <strong>{copy.module.incompleteTitle}</strong> {levelCopy.failureDescription}
+                  <strong>{copy.module.incompleteTitle}</strong> {actionableFailure || levelCopy.failureDescription}
                 </p>
               ) : (
                 <p>{copy.module.checkHint}</p>

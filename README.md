@@ -9,21 +9,21 @@ Instead of memorizing definitions, players start with a system that has a proble
 - Challenges are limited and created for educational purposes; there are no lives, points, or endless progression.
 - The diagram represents the system and its dependencies. Choices are recognizable code snippets, not abstract pieces without context.
 - Each challenge has a clear learning goal and explains the outcome after it is checked.
-- The Dependency Inversion Principle (DIP) and Dependency Injection (DI) are explained as distinct ideas, even when a challenge shows how they work together.
+- The introductory DI module focuses on handing collaborators to consumers and assembling them in each context; broader design principles are left for later modules.
 - The interface is available in Spanish and English.
 - Light and dark themes are available, with the system preference used as the initial choice.
 
 ## First module: Dependency Injection
 
-The module has seven sequential challenges: constructor injection of the MongoDB client, extraction of the storage adapter, the composition root, test doubles, service locators, the distinction between DI and DIP, and a provider-switching capstone.
+The module has five sequential challenges: constructor injection of the MongoDB client, extraction of the storage adapter, the composition root, a test double, and a capstone that transfers the pattern to email delivery. Service locators and DI vs. DIP are not part of this introductory path.
 
-The first challenge starts with `OrderService` constructing a MongoDB client and inserting orders into a collection directly. Learners first inject the `MongoClient` through the constructor; the next challenge extracts `MongoOrderStorage` and injects it instead, and later challenges introduce the `Storage` contract. Passing a challenge unlocks the next one. Checks validate the selected code choices and update the diagram; they do not execute arbitrary Python.
+The first challenge starts with `OrderService` constructing a MongoDB client and inserting orders into a collection directly. Learners first inject `MongoClient`; the next challenge extracts and injects `MongoOrderStorage`. Then they connect the pieces at application startup, test order behavior with `FakeStorage`, and apply the same decisions to `NotificationService` with real and fake mailers. The `Storage` contract appears only in the testing challenge. Passing a challenge unlocks the next one. Checks validate the selected code choices and update the diagram; they do not execute arbitrary Python.
 
-Options are shuffled on each visit. Each card always shows its category, title, and code; categories describe the technique without judging it. Distractors are plausible on purpose (an injected MongoDB client, mongomock, a service locator, an optional mailer); after each check, the chosen options reveal what they actually achieve, and the full explanation set appears once the challenge is passed.
+Options are shuffled on each visit. Each card always shows its category, title, and code; categories describe the technique without judging it. Distractors are plausible on purpose (an injected MongoDB client, mongomock, an optional mailer, a library patch); after each check, the chosen options reveal what they actually achieve, and the full explanation set appears once the challenge is passed.
 
-The diagram escalates with the learner instead of showing a finished design up front: the first challenge starts with a core pointing straight at a MongoDB client, the contract appears in challenges that introduce it, and a test implementation only shows up after it has been injected. That state is derived from the selected choices by `getDiagramState` in `src/data/diagramState.ts`. The core node itself never dumps raw code: `buildCoreSummary` renders a one- or two-sentence summary of what the service does with its dependencies (each option card already shows its own snippet). Selecting anything outside the answer taints the state (`hasResidue`): the diagram falls back to the original coupling, and when the achieved fix points at a different node than the leftover, both are drawn: the fix on top, the coupling that is still standing below.
+The diagram escalates with the learner instead of showing a finished design up front: the first challenge starts with a core creating a MongoDB client, the storage adapter is introduced separately, and the application wiring and test implementation appear only in their respective challenges. Selected alternatives update their actual construction path (for example, an in-service factory is not drawn as `main.py`). The capstone shows production and test paths independently. Diagram state is derived from selected choices by `getDiagramState` in `src/data/diagramState.ts`; code samples are never executed.
 
-See the [introductory DI module specification](docs/di-module.md) for the five-challenge learning path. The running app currently implements its first challenge (receive the client) plus the pre-existing challenges.
+See the [introductory DI module specification](docs/di-module.md) for the complete five-challenge learning path.
 
 ## Tech stack
 

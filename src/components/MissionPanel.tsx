@@ -8,6 +8,10 @@ export function MissionPanel({ copy }: { copy: LevelCopy }) {
       <h1 id="mission-title">{copy.title}</h1>
       <p className={styles.intro}>{copy.introduction}</p>
 
+      {copy.supportingCode && (
+        <pre className={styles.supportingCode}><code>{copy.supportingCode}</code></pre>
+      )}
+
       <section className={styles.objective}>
         <p className={styles.label}>{copy.objectiveLabel}</p>
         <p>{copy.objective}</p>

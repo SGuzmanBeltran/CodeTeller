@@ -3,8 +3,6 @@ export type LevelId =
   | 'storage-adapter'
   | 'composition-root'
   | 'test-double'
-  | 'service-locator'
-  | 'di-vs-dip'
   | 'capstone'
 
 export type TestResult = 'passed' | 'incomplete' | null
@@ -17,6 +15,7 @@ export type CodeChoice = {
 }
 
 export type LevelDiagram = {
+  mode?: 'client-injection' | 'composition' | 'capstone'
   coreName: string
   coreDescription: string
   contractName: string
@@ -30,6 +29,7 @@ export type LevelDiagram = {
   startsWithTestDouble: boolean
   // When true, the contract stays out of the diagram until the core depends on it.
   hidesContractInitially: boolean
+  requiresExtraction?: boolean
 }
 
 export type DILevel = {
@@ -112,6 +112,7 @@ client = pymongo.MongoClient("mongodb://localhost:27017")`,
       startsAbstract: false,
       startsWithTestDouble: false,
       hidesContractInitially: true,
+      mode: 'client-injection',
     },
   },
   storageLevel(
@@ -156,6 +157,7 @@ client = pymongo.MongoClient("mongodb://localhost:27017")`,
       coreDescription: 'Places orders.',
       startsAbstract: false,
       hidesContractInitially: true,
+      requiresExtraction: true,
       coupledNode: 'pymongo.MongoClient',
       productionImplementation: 'MongoOrderStorage',
     },
@@ -196,7 +198,9 @@ def storage(self):
     ],
     {
       startsInjected: true,
+      startsAbstract: false,
       hidesContractInitially: false,
+      mode: 'composition',
     },
   ),
   storageLevel(
@@ -206,7 +210,10 @@ def storage(self):
       {
         id: 'fake-in-test',
         code: `def test_place_order():
-    service = OrderService(FakeStorage())`,
+    fake = FakeStorage()
+    service = OrderService(fake)
+    service.place({"id": "A-1"})
+    assert fake.saved == [{"id": "A-1"}]`,
         effect: 'test-double',
       },
       {
@@ -231,83 +238,37 @@ def test_place_order():
       hidesContractInitially: false,
     },
   ),
-  storageLevel(
-    'service-locator',
-    ['pass-explicitly'],
-    [
-      {
-        id: 'pass-explicitly',
-        code: `def __init__(self, storage: Storage):
-    self.storage = storage`,
-        effect: 'injection',
-      },
-      {
-        id: 'inject-container',
-        code: `def __init__(self, container: Container):
-    self.storage = container.resolve(Storage)`,
-      },
-      {
-        id: 'inject-locator',
-        code: `def __init__(self, locator: StorageLocator):
-    self.storage = locator.get()`,
-      },
-      {
-        id: 'register-fake',
-        code: `# conftest.py
-container.register(Storage, FakeStorage)`,
-      },
-    ],
-    {
-      startsInjected: false,
-      hidesContractInitially: false,
-    },
-  ),
-  storageLevel(
-    'di-vs-dip',
-    ['depend-on-contract'],
-    [
-      {
-        id: 'depend-on-contract',
-        code: `def __init__(self, storage: Storage):
-    self.storage = storage`,
-        effect: 'abstraction',
-      },
-      {
-        id: 'union-concretes',
-        code: `def __init__(self, storage: MongoOrderStorage | FakeStorage):
-    self.storage = storage`,
-      },
-      {
-        id: 'drop-annotation',
-        code: `def __init__(self, storage):  # duck typing
-    self.storage = storage`,
-      },
-      {
-        id: 'autowire',
-        code: `container.register(OrderService)
-# resolves dependencies by type`,
-      },
-    ],
-    {
-      startsInjected: true,
-      startsAbstract: false,
-      hidesContractInitially: false,
-    },
-  ),
   {
     id: 'capstone',
-    correctChoiceIds: ['inject-mailer', 'fake-mailer-test'],
+    correctChoiceIds: ['inject-mailer', 'wire-mailer-at-root', 'fake-mailer-test'],
     choices: [
       {
         id: 'inject-mailer',
         code: `def __init__(self, mailer: Mailer):
-    self.mailer = mailer`,
+    self.mailer = mailer
+
+def send_welcome(self, to: str) -> None:
+    self.mailer.send(to, "Welcome!", "Welcome to the app.")`,
         effect: 'injection',
+      },
+      {
+        id: 'wire-mailer-at-root',
+        code: `# main.py
+mailer = SmtpMailer()
+service = NotificationService(mailer)`,
+        effect: 'composition',
       },
       {
         id: 'fake-mailer-test',
         code: `def test_welcome_email():
-    service = NotificationService(FakeMailer())`,
+    fake = FakeMailer()
+    service = NotificationService(fake)
+    service.send_welcome("ada@example.com")
+    assert fake.sent == [{
+        "to": "ada@example.com",
+        "subject": "Welcome!",
+        "body": "Welcome to the app.",
+    }]`,
         effect: 'test-double',
       },
       {
@@ -335,6 +296,7 @@ def test_welcome_email(smtp_mock):
       coupledNode: 'SmtpMailer',
       productionImplementation: 'SmtpMailer',
       testImplementation: 'FakeMailer',
+      mode: 'capstone',
       startsInjected: false,
       startsAbstract: true,
       startsWithTestDouble: false,

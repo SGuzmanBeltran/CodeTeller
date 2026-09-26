@@ -20,27 +20,10 @@ export function ArchitecturePreview({ copy }: { copy: AppCopy['landing'] }) {
           <i className={styles.forwardLine} />
         </div>
 
-        <article className={`${styles.node} ${styles.contract}`}>
-          <span>{copy.contractLabel}</span>
-          <strong>Storage</strong>
+        <article className={`${styles.node} ${styles.client}`}>
+          <span>{copy.clientLabel}</span>
+          <strong>pymongo.MongoClient</strong>
         </article>
-
-        <div className={`${styles.relation} ${styles.reverse}`}>
-          <span>{copy.implementsLabel}</span>
-          <i className={styles.reverseLine} />
-        </div>
-
-        <div className={styles.implementations}>
-          <span className={styles.implementationsLabel}>{copy.implementationsLabel}</span>
-          <article className={styles.implementation}>
-            <strong>MongoOrderStorage</strong>
-            <span>{copy.production}</span>
-          </article>
-          <article className={`${styles.implementation} ${styles.fakeImplementation}`}>
-            <strong>FakeStorage</strong>
-            <span>{copy.tests}</span>
-          </article>
-        </div>
       </div>
     </figure>
   )

@@ -35,6 +35,21 @@
 
 .intro { margin: 0; }
 
+.supportingCode {
+  overflow-x: auto;
+  max-height: 260px;
+  margin: 14px 0 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--code-ink);
+  background: var(--code-surface);
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
 .objective {
   margin-top: 23px;
   padding: 14px;

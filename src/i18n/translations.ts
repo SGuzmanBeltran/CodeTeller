@@ -13,6 +13,7 @@ export type LevelCopy = {
   eyebrow: string
   title: string
   introduction: string
+  supportingCode?: string
   objectiveLabel: string
   objective: string
   conceptLabel: string
@@ -24,6 +25,7 @@ export type LevelCopy = {
   taskSubtitle: string
   successDescription: string
   failureDescription: string
+  missingChoiceFeedback?: Record<string, string>
   options: Record<string, LevelOptionCopy>
 }
 
@@ -38,6 +40,11 @@ export type ModuleCopy = {
   incompleteTitle: string
   nextLevel: string
   finishModule: string
+  migrationNotice: {
+    v2: string
+    v3: string
+    dismiss: string
+  }
 }
 
 export const translations = { es, en } as const

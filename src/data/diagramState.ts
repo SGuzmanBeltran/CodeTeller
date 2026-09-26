@@ -1,10 +1,12 @@
 import type { DILevel, LevelDiagram } from './diModule'
 
 export type DiagramState = {
+  selectedOptionIds: string[]
   hasInjection: boolean
   hasExtraction: boolean
   hasAbstraction: boolean
   hasTestDouble: boolean
+  hasComposition: boolean
   // The contract only shows up once the core actually depends on it, so early
   // challenges start from the coupled system instead of a finished design.
   contractVisible: boolean
@@ -19,7 +21,9 @@ export type DiagramState = {
 }
 
 export function isTainted(state: DiagramState): boolean {
-  return state.hasResidue && (state.hasInjection || state.hasExtraction)
+  return state.hasResidue && (
+    state.hasInjection || state.hasExtraction || state.hasComposition || state.hasTestDouble
+  )
 }
 
 export type CoreSummaryCopy = {
@@ -75,13 +79,16 @@ export function getDiagramState(level: DILevel, selectedOptionIds: string[]): Di
   const hasExtraction = effects.includes('extraction')
   const hasAbstraction = diagram.startsAbstract || effects.includes('abstraction')
   const hasTestDouble = diagram.startsWithTestDouble || effects.includes('test-double')
+  const hasComposition = effects.includes('composition')
   const contractVisible = hasAbstraction && (hasInjection || !diagram.hidesContractInitially)
 
   return {
+    selectedOptionIds,
     hasInjection,
     hasExtraction,
     hasAbstraction,
     hasTestDouble,
+    hasComposition,
     contractVisible,
     hasDetachedPiece: hasExtraction && !hasInjection && !hasAbstraction,
     hasResidue: selectedOptionIds.some((id) => !level.correctChoiceIds.includes(id)),

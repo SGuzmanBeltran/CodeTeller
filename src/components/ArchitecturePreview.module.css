@@ -15,8 +15,7 @@
   margin-bottom: 17px;
 }
 
-.heading > span,
-.implementationsLabel {
+.heading > span {
   color: var(--muted);
   font-size: 8px;
   font-weight: 700;
@@ -32,7 +31,7 @@
 .diagram {
   display: grid;
   min-height: 205px;
-  grid-template-columns: minmax(92px, 1fr) 55px minmax(85px, 0.8fr) 65px minmax(105px, 1.05fr);
+  grid-template-columns: minmax(92px, 1fr) 55px minmax(105px, 1fr);
   align-items: center;
   gap: 6px;
   padding: 17px;
@@ -54,14 +53,12 @@
   background: var(--surface);
 }
 
-.node > span,
-.implementationsLabel {
+.node > span {
   font-size: 7px;
   letter-spacing: 0.6px;
 }
 
-.node > strong,
-.implementation strong {
+.node > strong {
   overflow: hidden;
   font-family: var(--mono);
   font-size: 9px;
@@ -73,9 +70,9 @@
 .core { border-color: var(--core-border); }
 .core > span { color: var(--core); }
 .core > strong { color: var(--ink); }
-.contract { border-color: var(--port-border); background: var(--core-soft); text-align: center; }
-.contract > span { color: var(--core); }
-.contract > strong { color: var(--ink); }
+.client { border-color: var(--warning-border); background: var(--warning-soft); text-align: center; }
+.client > span { color: var(--warning); }
+.client > strong { color: var(--ink); }
 
 .relation {
   display: grid;
@@ -85,16 +82,14 @@
   text-align: center;
 }
 
-.forwardLine,
-.reverseLine {
+.forwardLine {
   position: relative;
   display: block;
   height: 1px;
   background: var(--core-border);
 }
 
-.forwardLine::after,
-.reverseLine::before {
+.forwardLine::after {
   position: absolute;
   top: -3px;
   width: 6px;
@@ -105,24 +100,6 @@
 }
 
 .forwardLine::after { right: 0; transform: rotate(45deg); }
-.reverseLine::before { left: 0; transform: rotate(225deg); }
-
-.implementations { display: grid; gap: 7px; }
-.implementationsLabel { margin-bottom: 1px; }
-
-.implementation {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 9px;
-  border: 1px solid var(--adapter-border);
-  border-radius: 6px;
-  background: var(--adapter-surface);
-}
-
-.implementation strong { color: var(--adapter); }
-.implementation > span { color: var(--muted); font-size: 8px; }
-.fakeImplementation { background: var(--adapter-soft); }
 
 @media (max-width: 1050px) {
   .preview { max-width: 680px; }
@@ -133,10 +110,6 @@
   .diagram { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
   .node { min-height: 58px; }
   .relation { justify-items: center; gap: 4px; }
-  .forwardLine,
-  .reverseLine { width: 1px; height: 15px; }
-  .forwardLine::after,
-  .reverseLine::before { display: none; }
-  .implementations { grid-template-columns: 1fr 1fr; }
-  .implementationsLabel { grid-column: 1 / -1; }
+  .forwardLine { width: 1px; height: 15px; }
+  .forwardLine::after { display: none; }
 }

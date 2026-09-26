@@ -1,1 +1,35 @@
 .app { min-height: 100vh; }
+
+.migrationNotice {
+  display: flex;
+  width: min(calc(100% - 32px), 1100px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 14px auto 0;
+  padding: 12px 14px;
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  color: var(--ink-soft);
+  background: var(--warning-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.migrationNotice p { margin: 0; }
+
+.migrationNotice button {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid var(--warning-border);
+  border-radius: 5px;
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+}
+
+@media (max-width: 680px) {
+  .migrationNotice { align-items: flex-start; flex-direction: column; }
+  .migrationNotice button { width: 100%; }
+}

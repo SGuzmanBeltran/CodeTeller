@@ -75,7 +75,9 @@ function App() {
       started: true,
       selectedOptionIds: current.selectedOptionIds.includes(optionId)
         ? current.selectedOptionIds.filter((selected) => selected !== optionId)
-        : [...current.selectedOptionIds, optionId],
+        : (diLevels.find(({ id }) => id === current.currentLevelId)?.correctChoiceIds.length ?? 0) === 1
+          ? [optionId]
+          : [...current.selectedOptionIds, optionId],
       testResult: null,
       completedLevelIds: current.completedLevelIds.filter((id) => id !== current.currentLevelId),
       moduleComplete: false,
@@ -114,7 +116,9 @@ function App() {
   }
 
   function advanceLevel() {
-    const nextLevel = diLevels[levelIndex + 1]
+    const nextLevel = diLevels.slice(levelIndex + 1)
+      .find(({ id }) => !progress.completedLevelIds.includes(id))
+      ?? diLevels[levelIndex + 1]
     if (!nextLevel) return
 
     setProgress((current) => ({
@@ -138,6 +142,18 @@ function App() {
         showReset={view === 'challenge'}
         theme={theme}
       />
+
+      {progress.migrationNotice && (
+        <aside className={styles.migrationNotice} role="status">
+          <p>{copy.module.migrationNotice[progress.migrationNotice]}</p>
+          <button
+            onClick={() => setProgress((current) => ({ ...current, migrationNotice: null }))}
+            type="button"
+          >
+            {copy.module.migrationNotice.dismiss}
+          </button>
+        </aside>
+      )}
 
       {view === 'landing' ? (
         <LandingPage
