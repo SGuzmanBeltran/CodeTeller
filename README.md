@@ -1,35 +1,42 @@
-# React + TypeScript + Vite
+# CodeTeller
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+CodeTeller is a visual learning lab for software design principles and patterns. Learners solve small, focused challenges based on concrete engineering problems.
 
-Currently, two official plugins are available:
+Instead of memorizing definitions, players start with a system that has a problem, choose code changes, and see how those changes affect its architecture. Each challenge ends with a check that connects the technical decision to its purpose.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Approach
 
-## React Compiler
+- Challenges are limited and created for educational purposes; there are no lives, points, or endless progression.
+- The diagram represents the system and its dependencies. Choices are recognizable code snippets, not abstract pieces without context.
+- Each challenge has a clear learning goal and explains the outcome after it is checked.
+- The Dependency Inversion Principle (DIP) and Dependency Injection (DI) are explained as distinct ideas, even when a challenge shows how they work together.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## First challenge: decouple storage
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+`OrderService` creates `RedisStorage` directly, so even its business logic tests need Redis to be running. The challenge is to introduce a storage contract, receive the dependency from outside, and use a test double instead.
 
-## Expanding the Oxlint configuration
+The learning check is that the service can be tested without Redis. The diagram shows the relationship between `OrderService`, the `Storage` port, and its adapters; code choices let the learner build that solution step by step.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Tech stack
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+- React 19
+- TypeScript
+- Vite
+- React Compiler
+- CSS Modules
+
+## Local development
+
+Requires Node.js and pnpm.
+
+```sh
+pnpm install
+pnpm dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Available checks:
+
+```sh
+pnpm build
+pnpm lint
+```
