@@ -2,78 +2,13 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 import { AppHeader } from './components/AppHeader'
 import { ChallengePage } from './components/ChallengePage'
 import { LandingPage } from './components/LandingPage'
-import { diLevels, type LevelId, type TestResult } from './data/diModule'
+import { diLevels } from './data/diModule'
 import { translations, type Language } from './i18n/translations'
+import { createProgress, getInitialProgress, progressKey, type ModuleProgress } from './progress'
 import { getInitialTheme, type Theme } from './theme'
 import styles from './App.module.css'
 
 type View = 'landing' | 'challenge'
-
-type ModuleProgress = {
-  started: boolean
-  currentLevelId: LevelId
-  selectedOptionIds: string[]
-  testResult: TestResult
-  completedLevelIds: LevelId[]
-  moduleComplete: boolean
-}
-
-const progressKey = 'codeteller-di-intro-module-v2'
-
-function createProgress(started = false): ModuleProgress {
-  return {
-    started,
-    currentLevelId: diLevels[0].id,
-    selectedOptionIds: [],
-    testResult: null,
-    completedLevelIds: [],
-    moduleComplete: false,
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-function isLevelId(value: unknown): value is LevelId {
-  return typeof value === 'string' && diLevels.some((level) => level.id === value)
-}
-
-function getInitialProgress(): ModuleProgress {
-  try {
-    const stored = window.localStorage.getItem(progressKey)
-    if (!stored) return createProgress()
-
-    const value: unknown = JSON.parse(stored)
-    if (!isRecord(value)) return createProgress()
-
-    const currentLevelId = isLevelId(value.currentLevelId) ? value.currentLevelId : diLevels[0].id
-    const currentLevel = diLevels.find((level) => level.id === currentLevelId) ?? diLevels[0]
-    const selectedOptionIds = Array.isArray(value.selectedOptionIds)
-      ? value.selectedOptionIds.filter((id): id is string =>
-          typeof id === 'string' && currentLevel.choices.some((choice) => choice.id === id),
-        )
-      : []
-    const completedLevelIds = Array.isArray(value.completedLevelIds)
-      ? value.completedLevelIds.filter(isLevelId)
-      : []
-    const storedResult: TestResult = value.testResult === 'passed' || value.testResult === 'incomplete'
-      ? value.testResult
-      : null
-    const testResult: TestResult = selectedOptionIds.length > 0 ? storedResult : null
-
-    return {
-      started: value.started === true || completedLevelIds.length > 0 || selectedOptionIds.length > 0,
-      currentLevelId,
-      selectedOptionIds,
-      testResult,
-      completedLevelIds,
-      moduleComplete: value.moduleComplete === true && completedLevelIds.length === diLevels.length,
-    }
-  } catch {
-    return createProgress()
-  }
-}
 
 function getInitialLanguage(): Language {
   try {

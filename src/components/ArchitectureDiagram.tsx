@@ -1,5 +1,6 @@
 import styles from './ArchitectureDiagram.module.css'
-import { buildCoreSummary, isTainted, type DiagramState, type LevelDiagram } from '../data/diModule'
+import type { LevelDiagram } from '../data/diModule'
+import { buildCoreSummary, isTainted, type DiagramState } from '../data/diagramState'
 import type { AppCopy } from '../i18n/translations'
 
 type ArchitectureDiagramProps = {
