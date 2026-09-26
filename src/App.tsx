@@ -18,7 +18,7 @@ type ModuleProgress = {
   moduleComplete: boolean
 }
 
-const progressKey = 'codeteller-di-intro-module-v1'
+const progressKey = 'codeteller-di-intro-module-v2'
 
 function createProgress(started = false): ModuleProgress {
   return {
@@ -57,9 +57,10 @@ function getInitialProgress(): ModuleProgress {
     const completedLevelIds = Array.isArray(value.completedLevelIds)
       ? value.completedLevelIds.filter(isLevelId)
       : []
-    const testResult: TestResult = value.testResult === 'passed' || value.testResult === 'incomplete'
+    const storedResult: TestResult = value.testResult === 'passed' || value.testResult === 'incomplete'
       ? value.testResult
       : null
+    const testResult: TestResult = selectedOptionIds.length > 0 ? storedResult : null
 
     return {
       started: value.started === true || completedLevelIds.length > 0 || selectedOptionIds.length > 0,
@@ -212,6 +213,7 @@ function App() {
         />
       ) : (
         <ChallengePage
+          key={level.id}
           copy={copy}
           level={level}
           levelCopy={copy.levels[level.id]}

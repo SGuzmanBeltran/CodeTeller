@@ -1,12 +1,10 @@
 import styles from './ArchitectureDiagram.module.css'
-import type { LevelDiagram } from '../data/diModule'
+import { buildCoreSummary, isTainted, type DiagramState, type LevelDiagram } from '../data/diModule'
 import type { AppCopy } from '../i18n/translations'
 
 type ArchitectureDiagramProps = {
   diagram: LevelDiagram
-  hasInjection: boolean
-  hasAbstraction: boolean
-  hasTestDouble: boolean
+  state: DiagramState
   isComplete: boolean
   currentCode: string
   copy: AppCopy['architecture']
@@ -14,19 +12,34 @@ type ArchitectureDiagramProps = {
 
 export function ArchitectureDiagram({
   diagram,
-  hasInjection,
-  hasAbstraction,
-  hasTestDouble,
+  state,
   isComplete,
   currentCode,
   copy,
 }: ArchitectureDiagramProps) {
-  const dependsOnPort = hasInjection && hasAbstraction
+  const { hasInjection, hasExtraction, hasAbstraction, hasTestDouble, contractVisible, hasDetachedPiece, connected } = state
+  const tainted = isTainted(state)
+  const coreSummary = buildCoreSummary(diagram, state, copy)
+  // Any off-answer pick keeps the old problem alive: the diagram falls back to
+  // the original coupling instead of celebrating the partial fix. When the fix
+  // points at a different node than the leftover, both are drawn: the achieved
+  // connection on top, the coupling that is still standing below.
+  const showContract = contractVisible && !tainted
+  const showConnected = connected && !tainted
+  const showSplit = tainted && hasInjection && diagram.coupledNode !== diagram.productionImplementation
+  const mainConnected = showConnected || showSplit
+  const middleName = showSplit
+    ? diagram.productionImplementation
+    : showContract
+      ? diagram.contractName
+      : hasInjection && !tainted ? diagram.productionImplementation : diagram.coupledNode
   const status = isComplete
     ? copy.statusReady
-    : hasInjection
-      ? hasAbstraction ? copy.statusInjected : copy.statusConcrete
-      : copy.statusCoupled
+    : tainted ? copy.statusTainted
+      : hasInjection
+        ? hasAbstraction ? copy.statusInjected : copy.statusConcrete
+        : hasExtraction ? copy.statusExtracted
+          : contractVisible ? copy.statusCoupled : copy.statusCreated
 
   return (
     <section className={styles.panel} aria-labelledby="architecture-title">
@@ -35,44 +48,74 @@ export function ArchitectureDiagram({
           <p className={styles.eyebrow}>{copy.viewLabel}</p>
           <h2 id="architecture-title">{copy.title}</h2>
         </div>
-        <span className={`${styles.status} ${dependsOnPort ? styles.ready : ''}`}>{status}</span>
+        <span className={`${styles.status} ${showConnected ? styles.ready : ''}`}>{status}</span>
       </div>
 
-      <div className={styles.diagram}>
+      <div className={`${styles.diagram} ${showContract ? '' : styles.simple} ${showSplit ? styles.split : ''}`}>
         <article className={`${styles.node} ${styles.core}`}>
           <span className={styles.kind}>{copy.coreLabel}</span>
           <h3>{diagram.coreName}</h3>
           <p>{diagram.coreDescription}</p>
-          <code className={dependsOnPort ? styles.injected : styles.coupled}>{currentCode}</code>
+          <p className={`${styles.summary} ${showConnected ? styles.injected : styles.coupled}`}>{coreSummary}</p>
         </article>
 
         <div className={styles.link}>
           <span>{copy.dependsLabel}</span>
-          <i className={`${styles.line} ${dependsOnPort ? styles.connected : styles.broken}`} />
+          <i className={`${styles.line} ${mainConnected ? styles.connected : styles.broken}`} />
         </div>
 
-        <article className={`${styles.node} ${styles.port} ${hasAbstraction ? styles.defined : styles.concrete}`}>
-          <span className={styles.kind}>{hasAbstraction ? copy.portLabel : copy.concreteLabel}</span>
-          <h3>{diagram.portName}</h3>
-          <p>{diagram.portDescription}</p>
+        <article className={`${styles.node} ${showContract ? styles.contract : styles.concrete}`}>
+          <span className={styles.kind}>{showContract ? copy.contractLabel : copy.concreteLabel}</span>
+          <h3>{middleName}</h3>
+          <p>{showContract ? diagram.contractDescription : copy.concreteDescription}</p>
         </article>
 
-        <div className={`${styles.link} ${styles.reverse}`}>
-          <span>{copy.implementsLabel}</span>
-          <i className={`${styles.line} ${hasAbstraction ? styles.connected : styles.broken}`} />
-        </div>
+        {showSplit && (
+          <>
+            <div className={styles.link}>
+              <span>{copy.dependsLabel}</span>
+              <i className={`${styles.line} ${styles.broken}`} />
+            </div>
 
-        <div className={styles.adapters}>
-          <p className={styles.kind}>{copy.adaptersLabel}</p>
-          <article className={`${styles.adapter} ${styles.redis}`}>
-            <strong>{diagram.productionAdapter}</strong>
-            <span>{copy.production}</span>
+            <article className={`${styles.node} ${styles.concrete}`}>
+              <span className={styles.kind}>{copy.concreteLabel}</span>
+              <h3>{diagram.coupledNode}</h3>
+              <p>{copy.concreteDescription}</p>
+            </article>
+          </>
+        )}
+
+        {hasDetachedPiece && (
+          <article className={`${styles.node} ${styles.piece}`}>
+            <span className={styles.kind}>{copy.pieceLabel}</span>
+            <h3>{diagram.productionImplementation}</h3>
+            <p>{copy.pieceDescription}</p>
           </article>
-          <article className={`${styles.adapter} ${hasTestDouble ? styles.selected : ''}`}>
-            <strong>{diagram.testAdapter}</strong>
-            <span>{hasTestDouble ? copy.testAdapter : copy.testAlternative}</span>
-          </article>
-        </div>
+        )}
+
+        {showContract && (
+          <>
+            <div className={`${styles.link} ${styles.reverse}`}>
+              <span>{copy.implementsLabel}</span>
+              <i className={`${styles.line} ${hasAbstraction ? styles.connected : styles.broken}`} />
+            </div>
+
+            <div className={styles.implementations}>
+              <p className={styles.kind}>{copy.implementationsLabel}</p>
+              <article className={`${styles.implementation} ${styles.production}`}>
+                <strong>{diagram.productionImplementation}</strong>
+                <span>{copy.production}</span>
+              </article>
+              {hasTestDouble && (
+                <article className={`${styles.implementation} ${styles.selected}`}>
+                  <strong>{diagram.testImplementation}</strong>
+                  <span>{copy.tests}</span>
+                </article>
+              )}
+            </div>
+          </>
+        )}
+
       </div>
 
       <div className={styles.codeSummary}>

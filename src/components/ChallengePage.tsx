@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { ArchitectureDiagram } from './ArchitectureDiagram'
-import { CodeOption } from './CodeOption'
+import { CodeOption, type OptionVerdict } from './CodeOption'
 import { MissionPanel } from './MissionPanel'
-import type { DILevel, TestResult } from '../data/diModule'
+import { getDiagramState, shuffleChoices, type DILevel, type TestResult } from '../data/diModule'
 import type { AppCopy, LevelCopy } from '../i18n/translations'
 import styles from './ChallengePage.module.css'
 
@@ -32,15 +33,20 @@ export function ChallengePage({
   onNextLevel,
   onFinishModule,
 }: ChallengePageProps) {
-  const effects = level.choices
-    .filter((choice) => selectedOptionIds.includes(choice.id))
-    .map((choice) => choice.effect)
-  const hasInjection = level.diagram.startsInjected || effects.includes('injection')
-  const hasAbstraction = level.diagram.startsAbstract || effects.includes('abstraction')
-  const hasTestDouble = level.diagram.startsWithTestDouble || effects.includes('test-double')
+  // Choices are shuffled once per level mount (App passes key={level.id}).
+  const [choices] = useState(() => shuffleChoices(level.choices))
+  const diagramState = getDiagramState(level, selectedOptionIds)
   const lastSelectedId = selectedOptionIds[selectedOptionIds.length - 1]
-  const lastSelectedChoice = level.choices.find((choice) => choice.id === lastSelectedId)
+  const lastSelectedChoice = choices.find((choice) => choice.id === lastSelectedId)
   const currentCode = lastSelectedChoice?.code ?? level.diagram.initialCode
+
+  function optionState(choiceId: string): { revealed: boolean; verdict: OptionVerdict } {
+    const isSelected = selectedOptionIds.includes(choiceId)
+    const isCorrect = level.correctChoiceIds.includes(choiceId)
+    const revealed = testResult === 'passed' || (testResult === 'incomplete' && isSelected)
+    const verdict: OptionVerdict = !revealed ? null : isCorrect ? 'correct' : isSelected ? 'incorrect' : null
+    return { revealed, verdict }
+  }
 
   return (
     <main className={styles.layout}>
@@ -61,10 +67,8 @@ export function ChallengePage({
           copy={copy.architecture}
           currentCode={currentCode}
           diagram={level.diagram}
-          hasAbstraction={hasAbstraction}
-          hasInjection={hasInjection}
-          hasTestDouble={hasTestDouble}
           isComplete={testResult === 'passed'}
+          state={diagramState}
         />
 
         <section className={styles.solution} aria-labelledby="solution-title">
@@ -73,21 +77,18 @@ export function ChallengePage({
               <p className={styles.eyebrow}>{copy.module.solutionEyebrow}</p>
               <h2 id="solution-title">{copy.module.solutionTitle}</h2>
             </div>
-            <div className={styles.choiceStatus}>
-              <p>{copy.module.selectionHint}</p>
-              <span>{selectedOptionIds.length} / {level.choices.length} {copy.module.choicesSelected}</span>
-            </div>
           </div>
 
           <div className={styles.options}>
-            {level.choices.map((choice, index) => (
+            {choices.map((choice, index) => (
               <CodeOption
-                  key={choice.id}
-                  change={levelCopy.options[choice.id]}
-                  code={choice.code}
-                  selected={selectedOptionIds.includes(choice.id)}
+                key={choice.id}
+                change={levelCopy.options[choice.id]}
+                code={choice.code}
+                selected={selectedOptionIds.includes(choice.id)}
                 step={String(index + 1).padStart(2, '0')}
                 onSelect={() => onToggleOption(choice.id)}
+                {...optionState(choice.id)}
               />
             ))}
           </div>

@@ -16,9 +16,9 @@ The interface should feel like a calm architecture workbench: approachable and v
 | Secondary text | `#4C5664` | Body copy |
 | Muted text | `#65707B` | Labels and secondary information |
 | Core / application | `#005B96` | Application core and primary actions |
-| Port surface | `#EAF2F8` | Contracts and ports |
-| Adapter / implementation | `#286575` | Infrastructure adapters |
-| Adapter surface | `#E8F0F0` | Adapter cards and highlights |
+| Contract surface | `#EAF2F8` | Contracts and abstractions |
+| Implementation | `#286575` | Concrete implementations |
+| Implementation surface | `#E8F0F0` | Implementation cards and highlights |
 | Warning | `#C65D4D` | Coupling and incomplete states |
 | Success | `#28745F` | Passing checks |
 
@@ -33,9 +33,9 @@ The interface should feel like a calm architecture workbench: approachable and v
 | Primary text | `#E8EEF1` | Headings and important copy |
 | Secondary text | `#C4CDD3` | Body copy |
 | Muted text | `#9AA6AD` | Labels and secondary information |
-| Core / application | `#8BC7E7` | Application core and ports |
+| Core / application | `#8BC7E7` | Application core and contracts |
 | Primary action | `#07527D` | Buttons with light text |
-| Adapter / implementation | `#8AC9BC` | Infrastructure adapters |
+| Implementation | `#8AC9BC` | Concrete implementations |
 | Warning | `#F09584` | Coupling and incomplete states |
 | Success | `#8BD2AC` | Passing checks |
 

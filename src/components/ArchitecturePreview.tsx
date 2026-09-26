@@ -20,8 +20,8 @@ export function ArchitecturePreview({ copy }: { copy: AppCopy['landing'] }) {
           <i className={styles.forwardLine} />
         </div>
 
-        <article className={`${styles.node} ${styles.port}`}>
-          <span>{copy.portLabel}</span>
+        <article className={`${styles.node} ${styles.contract}`}>
+          <span>{copy.contractLabel}</span>
           <strong>Storage</strong>
         </article>
 
@@ -30,13 +30,13 @@ export function ArchitecturePreview({ copy }: { copy: AppCopy['landing'] }) {
           <i className={styles.reverseLine} />
         </div>
 
-        <div className={styles.adapters}>
-          <span className={styles.adapterLabel}>{copy.adapterLabel}</span>
-          <article className={styles.adapter}>
+        <div className={styles.implementations}>
+          <span className={styles.implementationsLabel}>{copy.implementationsLabel}</span>
+          <article className={styles.implementation}>
             <strong>RedisStorage</strong>
             <span>{copy.production}</span>
           </article>
-          <article className={`${styles.adapter} ${styles.fakeAdapter}`}>
+          <article className={`${styles.implementation} ${styles.fakeImplementation}`}>
             <strong>FakeStorage</strong>
             <span>{copy.tests}</span>
           </article>

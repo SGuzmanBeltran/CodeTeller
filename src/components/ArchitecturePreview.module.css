@@ -16,7 +16,7 @@
 }
 
 .heading > span,
-.adapterLabel {
+.implementationsLabel {
   color: var(--muted);
   font-size: 8px;
   font-weight: 700;
@@ -55,13 +55,13 @@
 }
 
 .node > span,
-.adapterLabel {
+.implementationsLabel {
   font-size: 7px;
   letter-spacing: 0.6px;
 }
 
 .node > strong,
-.adapter strong {
+.implementation strong {
   overflow: hidden;
   font-family: var(--mono);
   font-size: 9px;
@@ -73,9 +73,9 @@
 .core { border-color: var(--core-border); }
 .core > span { color: var(--core); }
 .core > strong { color: var(--ink); }
-.port { border-color: var(--port-border); background: var(--core-soft); text-align: center; }
-.port > span { color: var(--core); }
-.port > strong { color: var(--ink); }
+.contract { border-color: var(--port-border); background: var(--core-soft); text-align: center; }
+.contract > span { color: var(--core); }
+.contract > strong { color: var(--ink); }
 
 .relation {
   display: grid;
@@ -107,10 +107,10 @@
 .forwardLine::after { right: 0; transform: rotate(45deg); }
 .reverseLine::before { left: 0; transform: rotate(225deg); }
 
-.adapters { display: grid; gap: 7px; }
-.adapterLabel { margin-bottom: 1px; }
+.implementations { display: grid; gap: 7px; }
+.implementationsLabel { margin-bottom: 1px; }
 
-.adapter {
+.implementation {
   display: grid;
   gap: 4px;
   min-width: 0;
@@ -120,9 +120,9 @@
   background: var(--adapter-surface);
 }
 
-.adapter strong { color: var(--adapter); }
-.adapter > span { color: var(--muted); font-size: 8px; }
-.fakeAdapter { background: var(--adapter-soft); }
+.implementation strong { color: var(--adapter); }
+.implementation > span { color: var(--muted); font-size: 8px; }
+.fakeImplementation { background: var(--adapter-soft); }
 
 @media (max-width: 1050px) {
   .preview { max-width: 680px; }
@@ -137,6 +137,6 @@
   .reverseLine { width: 1px; height: 15px; }
   .forwardLine::after,
   .reverseLine::before { display: none; }
-  .adapters { grid-template-columns: 1fr 1fr; }
-  .adapterLabel { grid-column: 1 / -1; }
+  .implementations { grid-template-columns: 1fr 1fr; }
+  .implementationsLabel { grid-column: 1 / -1; }
 }

@@ -14,6 +14,8 @@
 
 .option:hover { border-color: var(--core-border); }
 .selected { border-color: var(--adapter); background: var(--selected-surface); }
+.correct { border-color: var(--success); }
+.incorrect { border-color: var(--warning-text); }
 
 .meta {
   display: flex;
@@ -39,6 +41,8 @@
 }
 
 .selected .toggle { border-color: var(--adapter); color: var(--surface); background: var(--adapter); }
+.correct .toggle { border-color: var(--success); color: var(--surface); background: var(--success); }
+.incorrect .toggle { border-color: var(--warning-text); color: var(--surface); background: var(--warning-text); }
 
 .title {
   margin-top: 7px;
