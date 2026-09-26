@@ -16,6 +16,14 @@
   gap: 12px;
 }
 
+.brand {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
 .mark {
   display: grid;
   width: 32px;

@@ -1,14 +1,59 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
-import { ArchitectureDiagram } from './components/ArchitectureDiagram'
 import { AppHeader } from './components/AppHeader'
-import { CodeOption } from './components/CodeOption'
-import { MissionPanel } from './components/MissionPanel'
-import { changeIds, codeSamples, type ChangeId } from './data/challenge'
+import { ChallengePage } from './components/ChallengePage'
+import { LandingPage } from './components/LandingPage'
+import { changeIds, type ChangeId, type TestResult } from './data/challenge'
 import { translations, type Language } from './i18n/translations'
 import { getInitialTheme, type Theme } from './theme'
 import styles from './App.module.css'
 
-type TestResult = 'passed' | 'incomplete' | null
+type View = 'landing' | 'challenge'
+
+type ChallengeProgress = {
+  started: boolean
+  selectedChanges: ChangeId[]
+  testResult: TestResult
+}
+
+const progressKey = 'codeteller-challenge-01'
+const emptyProgress: ChallengeProgress = {
+  started: false,
+  selectedChanges: [],
+  testResult: null,
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isChangeId(value: unknown): value is ChangeId {
+  return typeof value === 'string' && changeIds.includes(value as ChangeId)
+}
+
+function getInitialProgress(): ChallengeProgress {
+  try {
+    const stored = window.localStorage.getItem(progressKey)
+    if (!stored) return emptyProgress
+
+    const value: unknown = JSON.parse(stored)
+    if (!isRecord(value)) return emptyProgress
+
+    const selectedChanges = Array.isArray(value.selectedChanges)
+      ? value.selectedChanges.filter(isChangeId)
+      : []
+    const testResult: TestResult = value.testResult === 'passed' || value.testResult === 'incomplete'
+      ? value.testResult
+      : null
+
+    return {
+      started: value.started === true || selectedChanges.length > 0 || testResult !== null,
+      selectedChanges,
+      testResult,
+    }
+  } catch {
+    return emptyProgress
+  }
+}
 
 function getInitialLanguage(): Language {
   try {
@@ -19,17 +64,11 @@ function getInitialLanguage(): Language {
 }
 
 function App() {
+  const [view, setView] = useState<View>('landing')
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
-  const [selectedChanges, setSelectedChanges] = useState<ChangeId[]>([])
-  const [testResult, setTestResult] = useState<TestResult>(null)
+  const [progress, setProgress] = useState<ChallengeProgress>(getInitialProgress)
   const copy = translations[language]
-
-  const hasContract = selectedChanges.includes('contract')
-  const hasInjection = selectedChanges.includes('injection')
-  const hasTestDouble = selectedChanges.includes('test-double')
-  const isComplete = changeIds.every((id) => selectedChanges.includes(id))
-  const missingChanges = changeIds.filter((id) => !selectedChanges.includes(id))
 
   useEffect(() => {
     document.documentElement.lang = language
@@ -55,22 +94,43 @@ function App() {
     }
   }, [theme])
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(progressKey, JSON.stringify(progress))
+    } catch {
+      // The challenge still works for this session if storage is unavailable.
+    }
+  }, [progress])
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [view])
+
+  function startChallenge() {
+    setProgress((current) => ({ ...current, started: true }))
+    setView('challenge')
+  }
+
   function toggleChange(changeId: ChangeId) {
-    setTestResult(null)
-    setSelectedChanges((current) =>
-      current.includes(changeId)
-        ? current.filter((selected) => selected !== changeId)
-        : [...current, changeId],
-    )
+    setProgress((current) => ({
+      started: true,
+      selectedChanges: current.selectedChanges.includes(changeId)
+        ? current.selectedChanges.filter((selected) => selected !== changeId)
+        : [...current.selectedChanges, changeId],
+      testResult: null,
+    }))
   }
 
   function resetChallenge() {
-    setSelectedChanges([])
-    setTestResult(null)
+    setProgress({ started: true, selectedChanges: [], testResult: null })
   }
 
   function runTest() {
-    setTestResult(isComplete ? 'passed' : 'incomplete')
+    setProgress((current) => ({
+      ...current,
+      started: true,
+      testResult: changeIds.every((id) => current.selectedChanges.includes(id)) ? 'passed' : 'incomplete',
+    }))
   }
 
   return (
@@ -78,79 +138,25 @@ function App() {
       <AppHeader
         copy={copy.header}
         language={language}
+        onHome={() => setView('landing')}
         onLanguageChange={setLanguage}
         onReset={resetChallenge}
         onThemeToggle={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
+        showReset={view === 'challenge'}
         theme={theme}
       />
 
-      <main className={styles.layout}>
-        <MissionPanel copy={copy.mission} />
-
-        <section className={styles.workspace} aria-labelledby="challenge-title">
-          <div className={styles.heading}>
-            <div>
-              <p className={styles.eyebrow}>{copy.workbench.eyebrow}</p>
-              <h2 id="challenge-title">{copy.workbench.title}</h2>
-              <p className={styles.subtitle}>{copy.workbench.subtitle}</p>
-            </div>
-            <span className={styles.progress}>
-              {selectedChanges.length} <span>{copy.workbench.progressOf}</span> {changeIds.length}{' '}
-              {copy.workbench.changesSelected}
-            </span>
-          </div>
-
-          <ArchitectureDiagram
-            copy={copy.architecture}
-            hasContract={hasContract}
-            hasInjection={hasInjection}
-            hasTestDouble={hasTestDouble}
-            isComplete={isComplete}
-          />
-
-          <section className={styles.solution} aria-labelledby="solution-title">
-            <div className={styles.solutionHeading}>
-              <div>
-                <p className={styles.eyebrow}>{copy.workbench.solutionEyebrow}</p>
-                <h2 id="solution-title">{copy.workbench.solutionTitle}</h2>
-              </div>
-              <p>{copy.workbench.selectionHint}</p>
-            </div>
-
-            <div className={styles.options}>
-              {changeIds.map((id) => (
-                <CodeOption
-                  key={id}
-                  change={copy.options[id]}
-                  code={codeSamples[id]}
-                  selected={selectedChanges.includes(id)}
-                  onSelect={() => toggleChange(id)}
-                />
-              ))}
-            </div>
-
-            <div className={styles.actions}>
-              <div className={styles.feedback} aria-live="polite">
-                {testResult === 'passed' ? (
-                  <p className={styles.success} role="status">
-                    <strong>{copy.feedback.passedTitle}</strong> {copy.feedback.passedDescription}
-                  </p>
-                ) : testResult === 'incomplete' ? (
-                  <p className={styles.incomplete} role="status">
-                    <strong>{copy.feedback.incompleteTitle}</strong> {copy.feedback.missingPrefix}{' '}
-                    {missingChanges.map((id) => copy.options[id].title.toLowerCase()).join(' · ')}.
-                  </p>
-                ) : (
-                  <p>{copy.workbench.checkHint}</p>
-                )}
-              </div>
-              <button className={styles.run} onClick={runTest} type="button">
-                {copy.workbench.runCheck}
-              </button>
-            </div>
-          </section>
-        </section>
-      </main>
+      {view === 'landing' ? (
+        <LandingPage copy={copy.landing} hasStarted={progress.started} onStart={startChallenge} />
+      ) : (
+        <ChallengePage
+          copy={copy}
+          onRunTest={runTest}
+          onToggleChange={toggleChange}
+          selectedChanges={progress.selectedChanges}
+          testResult={progress.testResult}
+        />
+      )}
     </div>
   )
 }

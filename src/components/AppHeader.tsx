@@ -6,8 +6,10 @@ type AppHeaderProps = {
   copy: AppCopy['header']
   language: Language
   onLanguageChange: (language: Language) => void
+  onHome: () => void
   onReset: () => void
   onThemeToggle: () => void
+  showReset: boolean
   theme: Theme
 }
 
@@ -15,13 +17,15 @@ export function AppHeader({
   copy,
   language,
   onLanguageChange,
+  onHome,
   onReset,
   onThemeToggle,
+  showReset,
   theme,
 }: AppHeaderProps) {
   return (
     <header className={styles.header}>
-      <div className={styles.brand}>
+      <button aria-label={copy.homeLabel} className={styles.brand} onClick={onHome} type="button">
         <span className={styles.mark} aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <path d="m16 3 11 6.4v13.2L16 29 5 22.6V9.4L16 3Z" />
@@ -31,10 +35,10 @@ export function AppHeader({
         </span>
         <span className={styles.name}>CodeTeller</span>
         <span className={styles.description}>{copy.description}</span>
-      </div>
+      </button>
 
       <div className={styles.actions}>
-        <span className={styles.unit}>{copy.unit}</span>
+        {showReset && <span className={styles.unit}>{copy.unit}</span>}
         <div className={styles.languagePicker} role="group" aria-label={copy.languageLabel}>
           {(['es', 'en'] as const).map((option) => (
             <button
@@ -67,10 +71,12 @@ export function AppHeader({
             )}
           </svg>
         </button>
-        <button aria-label={copy.reset} className={styles.reset} onClick={onReset} type="button">
-          <span className={styles.resetText}>{copy.reset}</span>
-          <span aria-hidden="true" className={styles.resetIcon}>↻</span>
-        </button>
+        {showReset && (
+          <button aria-label={copy.reset} className={styles.reset} onClick={onReset} type="button">
+            <span className={styles.resetText}>{copy.reset}</span>
+            <span aria-hidden="true" className={styles.resetIcon}>↻</span>
+          </button>
+        )}
       </div>
     </header>
   )

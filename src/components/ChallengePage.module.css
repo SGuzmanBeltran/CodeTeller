@@ -1,0 +1,110 @@
+.layout {
+  display: grid;
+  width: min(100%, 1500px);
+  min-height: calc(100vh - 64px);
+  grid-template-columns: 275px minmax(0, 1fr);
+  margin: 0 auto;
+}
+
+.workspace {
+  min-width: 0;
+  padding: 30px clamp(20px, 3vw, 42px);
+}
+
+.heading,
+.solutionHeading,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+}
+
+.heading h1,
+.solutionHeading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.progress {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  font-size: 10px;
+}
+
+.progress span { color: var(--separator); }
+.solution { margin-top: 22px; }
+.solutionHeading { align-items: flex-end; margin-bottom: 11px; }
+.solutionHeading h2 { font-size: 15px; letter-spacing: -0.2px; }
+.solutionHeading > p,
+.feedback > p { margin: 0; color: var(--muted); font-size: 10px; }
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.actions {
+  min-height: 52px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.feedback { min-width: 0; }
+.feedback > .success { color: var(--success); }
+.feedback > .incomplete { color: var(--warning-text); }
+.feedback strong { font-weight: 700; }
+
+.run {
+  flex: 0 0 auto;
+  padding: 10px 13px;
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  background: var(--core-action);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.run:hover { background: var(--action-hover); }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .workspace { padding: 24px; }
+}
+
+@media (max-width: 680px) {
+  .workspace { padding: 21px 16px 28px; }
+  .heading { align-items: flex-start; }
+  .heading h1 { font-size: 20px; }
+  .progress { padding: 6px 8px; font-size: 9px; }
+  .solutionHeading { display: block; }
+  .solutionHeading > p { margin-top: 5px; }
+  .options { grid-template-columns: 1fr; }
+  .actions { align-items: stretch; flex-direction: column; }
+  .run { width: 100%; }
+}

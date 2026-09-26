@@ -1,4 +1,5 @@
 export type ChangeId = 'contract' | 'injection' | 'test-double'
+export type TestResult = 'passed' | 'incomplete' | null
 
 export const changeIds: ChangeId[] = ['contract', 'injection', 'test-double']
 

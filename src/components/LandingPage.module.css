@@ -1,0 +1,24 @@
+.page {
+  display: grid;
+  width: min(100%, 1360px);
+  min-height: calc(100vh - 64px);
+  align-content: center;
+  margin: 0 auto;
+  padding: 56px 38px 50px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: clamp(40px, 6vw, 82px);
+}
+
+@media (max-width: 1050px) {
+  .page { max-width: 850px; padding-top: 43px; }
+  .hero { grid-template-columns: 1fr; gap: 34px; }
+}
+
+@media (max-width: 680px) {
+  .page { padding: 32px 18px 36px; }
+}
