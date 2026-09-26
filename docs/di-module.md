@@ -39,24 +39,28 @@ Usar `MongoClient` es un objeto cliente; PyMongo normalmente abre conexiones de 
 
 **Pregunta:** ¿Cómo puede `OrderService` usar MongoDB sin crear él mismo el cliente?
 
-**1. Objetivo.** Enseñar la mecánica mínima de DI por constructor: el servicio recibe un `MongoClient` ya construido. El reto resuelve quién crea el cliente dentro del servicio, no quién lo construye en toda la aplicación ni cómo eliminar la dependencia de MongoDB.
+**1. Objetivo.** Enseñar la mecánica mínima de DI por constructor: el servicio recibe un `MongoClient` ya configurado. El reto resuelve quién crea y configura el cliente, no cómo eliminar la dependencia de MongoDB.
 
 **Estado inicial:** `OrderService.__init__` llama a `pymongo.MongoClient(...)`; `place` valida el pedido y ejecuta `self.client["shop"]["orders"].insert_one(order)`.
+
+**Por qué conviene recibirlo.** Si cada `OrderService` construye su propio cliente, esa clase decide detalles que pertenecen al arranque de la aplicación: URI y opciones de conexión, credenciales y cuándo se crea y se cierra el cliente. Además, `MongoClient` administra su propio pool de conexiones; crear clientes sin necesidad puede duplicar pools y dificultar su cierre ordenado. Al recibir un cliente, quien ensambla la aplicación puede configurar y reutilizar el cliente adecuado, y una prueba puede entregar un cliente de prueba en lugar de abrir una conexión a la base real. La clase también se puede construir sin conocer la URI ni cómo se preparó el cliente.
+
+Este beneficio tiene un límite deliberado: `OrderService` todavía usa `MongoClient`, colecciones e `insert_one`. Inyectar el cliente separa **la creación y configuración** de **su uso**; no elimina la dependencia de la API MongoDB. El siguiente reto responde por qué extraer `MongoOrderStorage` da un paso más.
 
 **2. Opciones de código (selección única válida).**
 
 | ID | Cambio propuesto | Papel y explicación al revelar |
 | --- | --- | --- |
-| `inject-client` | `def __init__(self, client: pymongo.MongoClient): self.client = client`; `place` sigue usando la colección y `insert_one`. | Correcta: el servicio recibe el cliente en vez de construirlo. Esto es DI. Aún conoce MongoDB; esa es la limitación que motiva el reto 2. |
+| `inject-client` | `def __init__(self, client: pymongo.MongoClient): self.client = client`; `place` sigue usando la colección y `insert_one`. | Correcta: el llamador controla configuración y ciclo de vida del cliente, y puede suministrar otro cliente para una prueba. Esto es DI; `OrderService` aún conoce MongoDB, limitación que motiva el reto 2. |
 | `lazy-client` | Crear `MongoClient` dentro de `place` en el primer uso. | Retrasa la creación, pero `OrderService` sigue decidiendo cómo crear su cliente. |
 | `module-singleton` | Importar un `MongoClient` global de otro módulo. | El cliente se crea fuera, pero el consumidor lo obtiene mediante estado global, no por su constructor. |
 | `inject-settings` | Recibir `Settings` y llamar a `MongoClient(settings.mongo_uri)` dentro de `OrderService`. | Se inyecta configuración, pero el servicio sigue construyendo el cliente. |
 
 El llamador entrega un cliente en el ejemplo, pero no se enseña aún dónde se construye en producción. Esa pregunta se reserva para el reto 3.
 
-**3. Interacción del sistema.** El diagrama inicia con `OrderService` creando `pymongo.MongoClient`. Al seleccionar `inject-client`, muestra que el cliente llega desde fuera, pero mantiene visible que el servicio conoce `MongoClient` y la colección. No mostrar `MongoOrderStorage` ni `Storage` todavía. Los distractores conservan la creación dentro del servicio o la esconden en un global. Tras comprobar, explicar que inyectar el cliente mejora quién controla su creación/configuración, pero no elimina el acoplamiento a MongoDB ni basta por sí solo para probar la lógica sin un cliente compatible.
+**3. Interacción del sistema.** El diagrama inicia con `OrderService` creando `pymongo.MongoClient`. Al seleccionar `inject-client`, muestra que el cliente llega desde fuera, pero mantiene visible que el servicio conoce `MongoClient` y la colección. No mostrar `MongoOrderStorage` ni `Storage` todavía. Los distractores conservan la creación dentro del servicio o la esconden en un global. Tras comprobar, explicar el beneficio concreto: configuración y ciclo de vida quedan a cargo del llamador y se puede suministrar un cliente de prueba. Aclarar que esto no elimina el acoplamiento a MongoDB ni basta para probar el comportamiento sin una instancia o sustituto compatible con la API del cliente.
 
-**4. Respuesta correcta.** `['inject-client']`. Cierre: “OrderService ya no crea MongoClient; alguien que lo llama se lo entrega. El servicio aún habla MongoDB: cambiamos quién crea el cliente, no qué API usa el servicio”.
+**4. Respuesta correcta.** `['inject-client']`. Cierre: “OrderService ya no decide cómo se configura ni cuándo se crea MongoClient; el llamador se lo entrega. Eso facilita compartir la configuración y usar otro cliente en una prueba. El servicio aún habla MongoDB: cambiamos quién crea el cliente, no qué API usa el servicio”.
 
 **Comprobación de comprensión:** preguntar qué línea dejó de construir el cliente y qué operación de MongoDB sigue dentro de `OrderService`.
 
