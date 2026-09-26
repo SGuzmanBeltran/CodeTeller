@@ -1,7 +1,7 @@
 .panel {
   padding: 30px 25px;
   border-right: 1px solid var(--line);
-  background: #fbfaf7;
+  background: var(--sidebar);
 }
 
 .eyebrow,
@@ -13,7 +13,7 @@
   letter-spacing: 1px;
 }
 
-.eyebrow span { padding: 0 4px; color: #aab2b5; }
+.eyebrow span { padding: 0 4px; color: var(--separator); }
 
 .panel h1 {
   margin: 22px 0 10px;

@@ -30,7 +30,7 @@
   letter-spacing: 0.9px;
 }
 
-.eyebrow span { padding: 0 4px; color: #aab2b5; }
+.eyebrow span { padding: 0 4px; color: var(--separator); }
 
 .heading h2,
 .solutionHeading h2 {
@@ -57,7 +57,7 @@
   font-size: 10px;
 }
 
-.progress span { color: #aab2b5; }
+.progress span { color: var(--separator); }
 
 .solution { margin-top: 22px; }
 
@@ -81,7 +81,7 @@
 
 .feedback { min-width: 0; }
 .feedback > .success { color: var(--success); }
-.feedback > .incomplete { color: #8e6729; }
+.feedback > .incomplete { color: var(--warning-text); }
 .feedback strong { font-weight: 700; }
 
 .run {
@@ -90,13 +90,13 @@
   border: 0;
   border-radius: 6px;
   color: white;
-  background: var(--core);
+  background: var(--core-action);
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
 }
 
-.run:hover { background: #064c73; }
+.run:hover { background: var(--action-hover); }
 
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }

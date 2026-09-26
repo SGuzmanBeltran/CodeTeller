@@ -11,6 +11,7 @@ Instead of memorizing definitions, players start with a system that has a proble
 - Each challenge has a clear learning goal and explains the outcome after it is checked.
 - The Dependency Inversion Principle (DIP) and Dependency Injection (DI) are explained as distinct ideas, even when a challenge shows how they work together.
 - The interface is available in Spanish and English.
+- Light and dark themes are available, with the system preference used as the initial choice.
 
 ## First challenge: decouple storage
 

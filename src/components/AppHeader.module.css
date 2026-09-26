@@ -23,7 +23,7 @@
   place-items: center;
   border-radius: 8px;
   color: white;
-  background: var(--core);
+  background: var(--core-action);
   font-size: 11px;
   font-weight: 700;
 }
@@ -47,7 +47,7 @@
 
 .unit span {
   padding: 0 4px;
-  color: #aab2b5;
+  color: var(--separator);
 }
 
 .reset {
@@ -72,7 +72,7 @@
   padding: 2px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #f7f8f7;
+  background: var(--surface-control);
 }
 
 .languageButton {
@@ -90,8 +90,23 @@
 .activeLanguage {
   color: var(--core);
   background: var(--surface);
-  box-shadow: 0 1px 3px rgb(36 42 53 / 12%);
+  box-shadow: var(--select-shadow);
+	}
+
+.themeToggle {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  cursor: pointer;
 }
+
+.themeToggle:hover { color: var(--core); }
+.themeToggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 
 .resetIcon { display: none; }
 
@@ -99,7 +114,7 @@
   .header { padding: 0 16px; }
   .description,
   .unit { display: none; }
-  .actions { gap: 7px; }
+  .actions { gap: 6px; }
   .reset { padding: 5px 8px; }
   .resetText { display: none; }
   .resetIcon { display: inline; font-size: 17px; line-height: 1; }

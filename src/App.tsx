@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { ArchitectureDiagram } from './components/ArchitectureDiagram'
 import { AppHeader } from './components/AppHeader'
 import { CodeOption } from './components/CodeOption'
 import { MissionPanel } from './components/MissionPanel'
 import { changeIds, codeSamples, type ChangeId } from './data/challenge'
 import { translations, type Language } from './i18n/translations'
+import { getInitialTheme, type Theme } from './theme'
 import styles from './App.module.css'
 
 type TestResult = 'passed' | 'incomplete' | null
@@ -19,6 +20,7 @@ function getInitialLanguage(): Language {
 
 function App() {
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [selectedChanges, setSelectedChanges] = useState<ChangeId[]>([])
   const [testResult, setTestResult] = useState<TestResult>(null)
   const copy = translations[language]
@@ -40,6 +42,18 @@ function App() {
       // The language switch still works for this session if storage is unavailable.
     }
   }, [copy.documentTitle, copy.metaDescription, language])
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('codeteller-theme', theme)
+    } catch {
+      // The theme switch still works for this session if storage is unavailable.
+    }
+  }, [theme])
 
   function toggleChange(changeId: ChangeId) {
     setTestResult(null)
@@ -66,6 +80,8 @@ function App() {
         language={language}
         onLanguageChange={setLanguage}
         onReset={resetChallenge}
+        onThemeToggle={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
+        theme={theme}
       />
 
       <main className={styles.layout}>

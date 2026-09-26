@@ -11,6 +11,8 @@ export const translations = {
       unit: 'Unidad 01 · Diseño de dependencias',
       reset: 'Reiniciar reto',
       languageLabel: 'Idioma',
+      switchToDark: 'Activar modo oscuro',
+      switchToLight: 'Activar modo claro',
     },
     mission: {
       eyebrow: 'RETO 01 / DEPENDENCIAS',
@@ -95,6 +97,8 @@ export const translations = {
       unit: 'Unit 01 · Dependency design',
       reset: 'Reset challenge',
       languageLabel: 'Language',
+      switchToDark: 'Switch to dark mode',
+      switchToLight: 'Switch to light mode',
     },
     mission: {
       eyebrow: 'CHALLENGE 01 / DEPENDENCIES',

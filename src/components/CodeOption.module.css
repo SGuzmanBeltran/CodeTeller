@@ -12,8 +12,8 @@
   text-align: left;
 }
 
-.option:hover { border-color: #9cb7c5; }
-.selected { border-color: var(--adapter); background: #fbfdfc; }
+.option:hover { border-color: var(--core-border); }
+.selected { border-color: var(--adapter); background: var(--selected-surface); }
 
 .meta {
   display: flex;
@@ -38,7 +38,7 @@
   letter-spacing: 0;
 }
 
-.selected .toggle { border-color: var(--adapter); color: white; background: var(--adapter); }
+.selected .toggle { border-color: var(--adapter); color: var(--surface); background: var(--adapter); }
 
 .title {
   margin-top: 7px;
@@ -53,8 +53,8 @@
   margin-top: 8px;
   padding: 7px;
   border-radius: 5px;
-  color: #40515e;
-  background: #f5f7f6;
+  color: var(--code-ink);
+  background: var(--code-surface);
   white-space: pre;
 }
 

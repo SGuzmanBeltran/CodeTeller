@@ -1,32 +1,91 @@
 :root {
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  color: #242a35;
-  background: #f6f4ef;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
   --canvas: #f6f4ef;
+  --sidebar: #fbfaf7;
   --surface: #fff;
   --surface-soft: #f5f7f6;
+  --surface-control: #f7f8f7;
+  --diagram: #fbfcfb;
+  --diagram-dot: #e1e7e7;
+  --code-surface: #f5f7f6;
+  --selected-surface: #fbfdfc;
   --ink: #242a35;
   --ink-soft: #4c5664;
   --muted: #78818c;
   --line: #e3e6e7;
   --line-strong: #d3dadd;
+  --separator: #aab2b5;
   --core: #005b96;
+  --core-action: #005b96;
+  --action-hover: #064c73;
   --core-soft: #eaf2f8;
+  --core-border: #91afc3;
+  --port-border: #a9c2d1;
   --adapter: #286575;
   --adapter-soft: #e8f0f0;
+  --adapter-border: #bfd1d1;
+  --adapter-surface: #f6faf9;
+  --adapter-selected-border: #79a69e;
   --warning: #c65d4d;
   --warning-soft: #fff0ec;
+  --warning-border: #efdcd7;
+  --warning-text: #8e6729;
   --success: #28745f;
   --success-soft: #eaf5ef;
+  --success-border: #d7e8df;
+  --code-ink: #40515e;
+  --select-shadow: 0 1px 3px rgb(36 42 53 / 12%);
   --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
+  color: var(--ink);
+  background: var(--canvas);
   color-scheme: light;
   font-size: 14px;
+}
+
+:root[data-theme='dark'] {
+  --canvas: #171c21;
+  --sidebar: #1b2228;
+  --surface: #20272e;
+  --surface-soft: #293139;
+  --surface-control: #293139;
+  --diagram: #1b2228;
+  --diagram-dot: #303a40;
+  --code-surface: #181f24;
+  --selected-surface: #202f2c;
+  --ink: #e8eef1;
+  --ink-soft: #c4cdd3;
+  --muted: #9aa6ad;
+  --line: #354149;
+  --line-strong: #4a565f;
+  --separator: #71808a;
+  --core: #8bc7e7;
+  --core-action: #07527d;
+  --action-hover: #064669;
+  --core-soft: #233c4c;
+  --core-border: #587c91;
+  --port-border: #527185;
+  --adapter: #8ac9bc;
+  --adapter-soft: #243c38;
+  --adapter-border: #4b716c;
+  --adapter-surface: #20302e;
+  --adapter-selected-border: #74ac9e;
+  --warning: #f09584;
+  --warning-soft: #3a2927;
+  --warning-border: #69453f;
+  --warning-text: #e7bd7a;
+  --success: #8bd2ac;
+  --success-soft: #20392e;
+  --success-border: #3e644f;
+  --code-ink: #c7d4db;
+  --select-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -35,12 +94,14 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  color: var(--ink);
+  background: var(--canvas);
 }
 
 button { color: inherit; font: inherit; }
 
 button:focus-visible,
 summary:focus-visible {
-  outline: 3px solid rgb(0 91 150 / 35%);
+  outline: 3px solid color-mix(in srgb, var(--core) 40%, transparent);
   outline-offset: 3px;
 }
