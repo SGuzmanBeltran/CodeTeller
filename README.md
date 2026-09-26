@@ -27,6 +27,8 @@ The learning check is that the service can be tested without Redis. The diagram 
 - React Compiler
 - CSS Modules
 
+See the [design system](docs/design-system.md) for the color palette and typography.
+
 ## Local development
 
 Requires Node.js and pnpm.
