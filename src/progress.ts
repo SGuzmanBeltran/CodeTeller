@@ -11,6 +11,12 @@ export type ModuleProgress = {
 
 export const progressKey = 'codeteller-di-intro-module-v2'
 
+const legacyChoiceIds: Record<string, string> = {
+  'fakeredis-client': 'mongomock-client',
+  'monkeypatch-redis': 'monkeypatch-mongo',
+  'skip-without-redis': 'skip-without-mongo',
+}
+
 export function createProgress(started = false): ModuleProgress {
   return {
     started,
@@ -41,9 +47,10 @@ export function getInitialProgress(): ModuleProgress {
     const currentLevelId = isLevelId(value.currentLevelId) ? value.currentLevelId : diLevels[0].id
     const currentLevel = diLevels.find((level) => level.id === currentLevelId) ?? diLevels[0]
     const selectedOptionIds = Array.isArray(value.selectedOptionIds)
-      ? value.selectedOptionIds.filter((id): id is string =>
-          typeof id === 'string' && currentLevel.choices.some((choice) => choice.id === id),
-        )
+      ? [...new Set(value.selectedOptionIds
+          .filter((id): id is string => typeof id === 'string')
+          .map((id) => legacyChoiceIds[id] ?? id)
+          .filter((id) => currentLevel.choices.some((choice) => choice.id === id)))]
       : []
     const completedLevelIds = Array.isArray(value.completedLevelIds)
       ? value.completedLevelIds.filter(isLevelId)

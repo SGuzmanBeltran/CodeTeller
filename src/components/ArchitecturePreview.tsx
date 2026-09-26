@@ -33,7 +33,7 @@ export function ArchitecturePreview({ copy }: { copy: AppCopy['landing'] }) {
         <div className={styles.implementations}>
           <span className={styles.implementationsLabel}>{copy.implementationsLabel}</span>
           <article className={styles.implementation}>
-            <strong>RedisStorage</strong>
+            <strong>MongoOrderStorage</strong>
             <span>{copy.production}</span>
           </article>
           <article className={`${styles.implementation} ${styles.fakeImplementation}`}>

@@ -43,8 +43,8 @@ const storageDiagram: LevelDiagram = {
   coreDescription: 'Validates and saves orders.',
   contractName: 'Storage',
   contractDescription: 'Storage contract',
-  coupledNode: 'RedisStorage',
-  productionImplementation: 'RedisStorage',
+  coupledNode: 'MongoOrderStorage',
+  productionImplementation: 'MongoOrderStorage',
   testImplementation: 'FakeStorage',
   startsInjected: false,
   startsAbstract: true,
@@ -77,43 +77,44 @@ export const diLevels: DILevel[] = [
     [
       {
         id: 'extract-storage',
-        code: `class RedisOrderStorage:
-    def __init__(self):
-        self.client = redis.Redis(host="localhost")
+        code: `class MongoOrderStorage:
+    def __init__(self, client: pymongo.MongoClient):
+        self.collection = client["shop"]["orders"]
 
-    def save(self, order: dict) -> None: ...`,
+    def save(self, order: dict) -> None:
+        self.collection.insert_one(order)`,
         effect: 'extraction',
       },
       {
         id: 'inject-storage',
-        code: `def __init__(self, storage: RedisOrderStorage):
+        code: `def __init__(self, storage: MongoOrderStorage):
     self.storage = storage`,
         effect: 'injection',
       },
       {
         id: 'inject-client',
-        code: `def __init__(self, client: redis.Redis):
+        code: `def __init__(self, client: pymongo.MongoClient):
     self.client = client`,
       },
       {
         id: 'lazy-client',
         code: `def place(self, order):
-    if self._redis is None:
-        self._redis = redis.Redis(host="localhost")
-    self._redis.hset(...)`,
+    if self._mongo is None:
+        self._mongo = pymongo.MongoClient("mongodb://localhost:27017")
+    self._mongo["shop"]["orders"].insert_one(order)`,
       },
       {
         id: 'module-singleton',
         code: `# storage.py
-client = redis.Redis(host="localhost")`,
+client = pymongo.MongoClient("mongodb://localhost:27017")`,
       },
     ],
     {
       coreDescription: 'Places orders.',
       startsAbstract: false,
       hidesContractInitially: true,
-      coupledNode: 'redis.Redis',
-      productionImplementation: 'RedisOrderStorage',
+      coupledNode: 'pymongo.MongoClient',
+      productionImplementation: 'MongoOrderStorage',
     },
   ),
   storageLevel(
@@ -123,7 +124,8 @@ client = redis.Redis(host="localhost")`,
       {
         id: 'wire-at-root',
         code: `# main.py
-storage = RedisStorage()
+client = pymongo.MongoClient("mongodb://localhost:27017")
+storage = MongoOrderStorage(client)
 service = OrderService(storage)`,
         effect: 'composition',
       },
@@ -136,14 +138,16 @@ service = OrderService(storage)`,
         id: 'factory-in-core',
         code: `# order_service.py
 def create_service() -> OrderService:
-    return OrderService(RedisStorage())`,
+    client = pymongo.MongoClient("mongodb://localhost:27017")
+    return OrderService(MongoOrderStorage(client))`,
       },
       {
         id: 'lazy-init',
         code: `@property
 def storage(self):
     if self._storage is None:
-        self._storage = RedisStorage()
+        client = pymongo.MongoClient("mongodb://localhost:27017")
+        self._storage = MongoOrderStorage(client)
     return self._storage`,
       },
     ],
@@ -163,18 +167,18 @@ def storage(self):
         effect: 'test-double',
       },
       {
-        id: 'fakeredis-client',
-        code: `client = fakeredis.FakeStrictRedis()
-service = OrderService(RedisStorage(client))`,
+        id: 'mongomock-client',
+        code: `client = mongomock.MongoClient()
+service = OrderService(MongoOrderStorage(client))`,
       },
       {
-        id: 'monkeypatch-redis',
+        id: 'monkeypatch-mongo',
         code: `def test_place_order(monkeypatch):
-    monkeypatch.setattr(app, 'RedisStorage', FakeStorage)`,
+    monkeypatch.setattr(app, 'MongoOrderStorage', FakeStorage)`,
       },
       {
-        id: 'skip-without-redis',
-        code: `@pytest.mark.skipif(not redis_up(), reason='no Redis')
+        id: 'skip-without-mongo',
+        code: `@pytest.mark.skipif(not mongo_up(), reason='no MongoDB')
 def test_place_order():
     ...`,
       },
@@ -227,7 +231,7 @@ container.register(Storage, FakeStorage)`,
       },
       {
         id: 'union-concretes',
-        code: `def __init__(self, storage: RedisStorage | FakeStorage):
+        code: `def __init__(self, storage: MongoOrderStorage | FakeStorage):
     self.storage = storage`,
       },
       {
