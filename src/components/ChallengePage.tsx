@@ -36,9 +36,6 @@ export function ChallengePage({
   // Choices are shuffled once per level mount (App passes key={level.id}).
   const [choices] = useState(() => shuffleChoices(level.choices))
   const diagramState = getDiagramState(level, selectedOptionIds)
-  const lastSelectedId = selectedOptionIds[selectedOptionIds.length - 1]
-  const lastSelectedChoice = choices.find((choice) => choice.id === lastSelectedId)
-  const currentCode = lastSelectedChoice?.code ?? level.diagram.initialCode
 
   function optionState(choiceId: string): { revealed: boolean; verdict: OptionVerdict } {
     const isSelected = selectedOptionIds.includes(choiceId)
@@ -65,7 +62,6 @@ export function ChallengePage({
 
         <ArchitectureDiagram
           copy={copy.architecture}
-          currentCode={currentCode}
           diagram={level.diagram}
           isComplete={testResult === 'passed'}
           state={diagramState}

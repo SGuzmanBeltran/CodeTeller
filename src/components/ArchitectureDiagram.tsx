@@ -6,7 +6,6 @@ type ArchitectureDiagramProps = {
   diagram: LevelDiagram
   state: DiagramState
   isComplete: boolean
-  currentCode: string
   copy: AppCopy['architecture']
 }
 
@@ -14,7 +13,6 @@ export function ArchitectureDiagram({
   diagram,
   state,
   isComplete,
-  currentCode,
   copy,
 }: ArchitectureDiagramProps) {
   const { hasInjection, hasExtraction, hasAbstraction, hasTestDouble, contractVisible, hasDetachedPiece, connected } = state
@@ -118,10 +116,6 @@ export function ArchitectureDiagram({
 
       </div>
 
-      <div className={styles.codeSummary}>
-        <span>{copy.currentCode}</span>
-        <code>{currentCode}</code>
-      </div>
     </section>
   )
 }

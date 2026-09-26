@@ -29,7 +29,6 @@ export type LevelDiagram = {
   startsWithTestDouble: boolean
   // When true, the contract stays out of the diagram until the core depends on it.
   hidesContractInitially: boolean
-  initialCode: string
 }
 
 export type DILevel = {
@@ -51,7 +50,6 @@ const storageDiagram: LevelDiagram = {
   startsAbstract: true,
   startsWithTestDouble: false,
   hidesContractInitially: true,
-  initialCode: 'OrderService() creates RedisStorage()',
 }
 
 function storageLevel(
@@ -207,7 +205,6 @@ client = redis.Redis(host="localhost")`,
       hidesContractInitially: true,
       coupledNode: 'redis.Redis',
       productionImplementation: 'RedisOrderStorage',
-      initialCode: 'self.redis = redis.Redis(host="localhost")',
     },
   ),
   storageLevel(
@@ -244,7 +241,6 @@ def storage(self):
     {
       startsInjected: true,
       hidesContractInitially: false,
-      initialCode: 'main.py: service = OrderService(???)',
     },
   ),
   storageLevel(
@@ -277,7 +273,6 @@ def test_place_order():
     {
       startsInjected: true,
       hidesContractInitially: false,
-      initialCode: 'service = OrderService(RedisStorage())',
     },
   ),
   storageLevel(
@@ -309,7 +304,6 @@ container.register(Storage, FakeStorage)`,
     {
       startsInjected: false,
       hidesContractInitially: false,
-      initialCode: 'self.storage = container.resolve(Storage)',
     },
   ),
   storageLevel(
@@ -342,7 +336,6 @@ container.register(Storage, FakeStorage)`,
       startsInjected: true,
       startsAbstract: false,
       hidesContractInitially: false,
-      initialCode: 'OrderService(storage: RedisStorage)',
     },
   ),
   {
@@ -390,7 +383,6 @@ def test_welcome_email(smtp_mock):
       startsAbstract: true,
       startsWithTestDouble: false,
       hidesContractInitially: true,
-      initialCode: 'NotificationService() creates SmtpMailer()',
     },
   },
 ]
