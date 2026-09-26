@@ -10,6 +10,7 @@ Instead of memorizing definitions, players start with a system that has a proble
 - The diagram represents the system and its dependencies. Choices are recognizable code snippets, not abstract pieces without context.
 - Each challenge has a clear learning goal and explains the outcome after it is checked.
 - The Dependency Inversion Principle (DIP) and Dependency Injection (DI) are explained as distinct ideas, even when a challenge shows how they work together.
+- The interface is available in Spanish and English.
 
 ## First challenge: decouple storage
 
