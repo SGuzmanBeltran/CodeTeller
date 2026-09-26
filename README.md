@@ -13,11 +13,11 @@ Instead of memorizing definitions, players start with a system that has a proble
 - The interface is available in Spanish and English.
 - Light and dark themes are available, with the system preference used as the initial choice.
 
-## First challenge: decouple storage
+## First module: Dependency Injection
 
-`OrderService` creates `RedisStorage` directly, so even its business logic tests need Redis to be running. The challenge is to introduce a storage contract, receive the dependency from outside, and use a test double instead.
+The module has six sequential challenges: constructor injection, the composition root, test doubles, service locators, the distinction between DI and DIP, and a provider-switching capstone.
 
-The learning check is that the service can be tested without Redis. The diagram shows the relationship between `OrderService`, the `Storage` port, and its adapters; code choices let the learner build that solution step by step.
+The first challenge starts with `OrderService` creating `RedisStorage` directly. The `Storage` contract is already provided so the learner can focus on injecting a dependency through the constructor. Passing a challenge unlocks the next one. Checks validate the selected code choices and update the diagram; they do not execute arbitrary Python.
 
 ## Tech stack
 

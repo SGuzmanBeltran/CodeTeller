@@ -151,6 +151,8 @@
 .port p { font-size: 8px; }
 .defined { border-color: var(--adapter-selected-border); background: var(--adapter-soft); }
 .defined .kind { color: var(--adapter); }
+.concrete { border-color: var(--warning-border); background: var(--warning-soft); }
+.concrete .kind { color: var(--warning); }
 
 .adapters { display: grid; gap: 7px; }
 .adapters > .kind { margin: 0 0 1px; }

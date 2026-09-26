@@ -37,23 +37,14 @@
   letter-spacing: -0.5px;
 }
 
+.eyebrow span { padding: 0 3px; color: var(--separator); }
+
 .subtitle {
   margin: 5px 0 0;
   color: var(--muted);
   font-size: 11px;
 }
 
-.progress {
-  flex: 0 0 auto;
-  padding: 7px 10px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  color: var(--ink-soft);
-  background: var(--surface);
-  font-size: 10px;
-}
-
-.progress span { color: var(--separator); }
 .solution { margin-top: 22px; }
 .solutionHeading { align-items: flex-end; margin-bottom: 11px; }
 .solutionHeading h2 { font-size: 15px; letter-spacing: -0.2px; }
@@ -101,7 +92,6 @@
   .workspace { padding: 21px 16px 28px; }
   .heading { align-items: flex-start; }
   .heading h1 { font-size: 20px; }
-  .progress { padding: 6px 8px; font-size: 9px; }
   .solutionHeading { display: block; }
   .solutionHeading > p { margin-top: 5px; }
   .options { grid-template-columns: 1fr; }

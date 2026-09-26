@@ -1,7 +1,7 @@
 import styles from './MissionPanel.module.css'
-import type { AppCopy } from '../i18n/translations'
+import type { LevelCopy } from '../i18n/translations'
 
-export function MissionPanel({ copy }: { copy: AppCopy['mission'] }) {
+export function MissionPanel({ copy }: { copy: LevelCopy }) {
   return (
     <aside className={styles.panel} aria-labelledby="mission-title">
       <p className={styles.eyebrow}>{copy.eyebrow}</p>
@@ -14,14 +14,10 @@ export function MissionPanel({ copy }: { copy: AppCopy['mission'] }) {
       </section>
 
       <section className={styles.concepts} aria-labelledby="concepts-title">
-        <p className={styles.label} id="concepts-title">{copy.conceptsLabel}</p>
+        <p className={styles.label} id="concepts-title">{copy.conceptLabel}</p>
         <div className={styles.concept}>
-          <span className={styles.dip}>DIP</span>
-          <p>{copy.dip}</p>
-        </div>
-        <div className={styles.concept}>
-          <span className={styles.di}>DI</span>
-          <p>{copy.di}</p>
+          <span className={styles.di}>{copy.conceptTag}</span>
+          <p>{copy.concept}</p>
         </div>
       </section>
 

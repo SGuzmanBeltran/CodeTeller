@@ -1,73 +1,93 @@
 import { ArchitectureDiagram } from './ArchitectureDiagram'
 import { CodeOption } from './CodeOption'
 import { MissionPanel } from './MissionPanel'
-import { changeIds, codeSamples, type ChangeId, type TestResult } from '../data/challenge'
-import type { AppCopy } from '../i18n/translations'
+import type { DILevel, TestResult } from '../data/diModule'
+import type { AppCopy, LevelCopy } from '../i18n/translations'
 import styles from './ChallengePage.module.css'
 
 type ChallengePageProps = {
-  copy: AppCopy
-  selectedChanges: ChangeId[]
+  level: DILevel
+  levelCopy: LevelCopy
+  levelNumber: number
+  totalLevels: number
+  selectedOptionIds: string[]
   testResult: TestResult
-  onToggleChange: (changeId: ChangeId) => void
+  copy: AppCopy
+  onToggleOption: (optionId: string) => void
   onRunTest: () => void
+  onNextLevel: () => void
+  onFinishModule: () => void
 }
 
 export function ChallengePage({
-  copy,
-  selectedChanges,
+  level,
+  levelCopy,
+  levelNumber,
+  totalLevels,
+  selectedOptionIds,
   testResult,
-  onToggleChange,
+  copy,
+  onToggleOption,
   onRunTest,
+  onNextLevel,
+  onFinishModule,
 }: ChallengePageProps) {
-  const hasContract = selectedChanges.includes('contract')
-  const hasInjection = selectedChanges.includes('injection')
-  const hasTestDouble = selectedChanges.includes('test-double')
-  const isComplete = changeIds.every((id) => selectedChanges.includes(id))
-  const missingChanges = changeIds.filter((id) => !selectedChanges.includes(id))
+  const effects = level.choices
+    .filter((choice) => selectedOptionIds.includes(choice.id))
+    .map((choice) => choice.effect)
+  const hasInjection = level.diagram.startsInjected || effects.includes('injection')
+  const hasAbstraction = level.diagram.startsAbstract || effects.includes('abstraction')
+  const hasTestDouble = level.diagram.startsWithTestDouble || effects.includes('test-double')
+  const lastSelectedId = selectedOptionIds[selectedOptionIds.length - 1]
+  const lastSelectedChoice = level.choices.find((choice) => choice.id === lastSelectedId)
+  const currentCode = lastSelectedChoice?.code ?? level.diagram.initialCode
 
   return (
     <main className={styles.layout}>
-      <MissionPanel copy={copy.mission} />
+      <MissionPanel copy={levelCopy} />
 
       <section className={styles.workspace} aria-labelledby="challenge-title">
         <div className={styles.heading}>
           <div>
-            <p className={styles.eyebrow}>{copy.workbench.eyebrow}</p>
-            <h1 id="challenge-title">{copy.workbench.title}</h1>
-            <p className={styles.subtitle}>{copy.workbench.subtitle}</p>
+            <p className={styles.eyebrow}>
+              {copy.module.levelPrefix} {levelNumber} <span>{copy.module.progressOf}</span> {totalLevels}
+            </p>
+            <h1 id="challenge-title">{levelCopy.taskTitle}</h1>
+            <p className={styles.subtitle}>{levelCopy.taskSubtitle}</p>
           </div>
-          <span className={styles.progress}>
-            {selectedChanges.length} <span>{copy.workbench.progressOf}</span> {changeIds.length}{' '}
-            {copy.workbench.changesSelected}
-          </span>
         </div>
 
         <ArchitectureDiagram
           copy={copy.architecture}
-          hasContract={hasContract}
+          currentCode={currentCode}
+          diagram={level.diagram}
+          hasAbstraction={hasAbstraction}
           hasInjection={hasInjection}
           hasTestDouble={hasTestDouble}
-          isComplete={isComplete}
+          isComplete={testResult === 'passed'}
         />
 
         <section className={styles.solution} aria-labelledby="solution-title">
           <div className={styles.solutionHeading}>
             <div>
-              <p className={styles.eyebrow}>{copy.workbench.solutionEyebrow}</p>
-              <h2 id="solution-title">{copy.workbench.solutionTitle}</h2>
+              <p className={styles.eyebrow}>{copy.module.solutionEyebrow}</p>
+              <h2 id="solution-title">{copy.module.solutionTitle}</h2>
             </div>
-            <p>{copy.workbench.selectionHint}</p>
+            <div className={styles.choiceStatus}>
+              <p>{copy.module.selectionHint}</p>
+              <span>{selectedOptionIds.length} / {level.choices.length} {copy.module.choicesSelected}</span>
+            </div>
           </div>
 
           <div className={styles.options}>
-            {changeIds.map((id) => (
+            {level.choices.map((choice, index) => (
               <CodeOption
-                key={id}
-                change={copy.options[id]}
-                code={codeSamples[id]}
-                selected={selectedChanges.includes(id)}
-                onSelect={() => onToggleChange(id)}
+                  key={choice.id}
+                  change={levelCopy.options[choice.id]}
+                  code={choice.code}
+                  selected={selectedOptionIds.includes(choice.id)}
+                step={String(index + 1).padStart(2, '0')}
+                onSelect={() => onToggleOption(choice.id)}
               />
             ))}
           </div>
@@ -76,20 +96,30 @@ export function ChallengePage({
             <div className={styles.feedback} aria-live="polite">
               {testResult === 'passed' ? (
                 <p className={styles.success} role="status">
-                  <strong>{copy.feedback.passedTitle}</strong> {copy.feedback.passedDescription}
+                  <strong>{copy.module.passedTitle}</strong> {levelCopy.successDescription}
                 </p>
               ) : testResult === 'incomplete' ? (
                 <p className={styles.incomplete} role="status">
-                  <strong>{copy.feedback.incompleteTitle}</strong> {copy.feedback.missingPrefix}{' '}
-                  {missingChanges.map((id) => copy.options[id].title.toLowerCase()).join(' · ')}.
+                  <strong>{copy.module.incompleteTitle}</strong> {levelCopy.failureDescription}
                 </p>
               ) : (
-                <p>{copy.workbench.checkHint}</p>
+                <p>{copy.module.checkHint}</p>
               )}
             </div>
-            <button className={styles.run} onClick={onRunTest} type="button">
-              {copy.workbench.runCheck}
-            </button>
+
+            {testResult === 'passed' ? (
+              <button
+                className={styles.run}
+                onClick={levelNumber === totalLevels ? onFinishModule : onNextLevel}
+                type="button"
+              >
+                {levelNumber === totalLevels ? copy.module.finishModule : copy.module.nextLevel}
+              </button>
+            ) : (
+              <button className={styles.run} onClick={onRunTest} type="button">
+                {copy.module.runCheck}
+              </button>
+            )}
           </div>
         </section>
       </section>

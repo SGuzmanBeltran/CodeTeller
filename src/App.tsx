@@ -2,56 +2,75 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 import { AppHeader } from './components/AppHeader'
 import { ChallengePage } from './components/ChallengePage'
 import { LandingPage } from './components/LandingPage'
-import { changeIds, type ChangeId, type TestResult } from './data/challenge'
+import { diLevels, type LevelId, type TestResult } from './data/diModule'
 import { translations, type Language } from './i18n/translations'
 import { getInitialTheme, type Theme } from './theme'
 import styles from './App.module.css'
 
 type View = 'landing' | 'challenge'
 
-type ChallengeProgress = {
+type ModuleProgress = {
   started: boolean
-  selectedChanges: ChangeId[]
+  currentLevelId: LevelId
+  selectedOptionIds: string[]
   testResult: TestResult
+  completedLevelIds: LevelId[]
+  moduleComplete: boolean
 }
 
-const progressKey = 'codeteller-challenge-01'
-const emptyProgress: ChallengeProgress = {
-  started: false,
-  selectedChanges: [],
-  testResult: null,
+const progressKey = 'codeteller-di-intro-module-v1'
+
+function createProgress(started = false): ModuleProgress {
+  return {
+    started,
+    currentLevelId: diLevels[0].id,
+    selectedOptionIds: [],
+    testResult: null,
+    completedLevelIds: [],
+    moduleComplete: false,
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isChangeId(value: unknown): value is ChangeId {
-  return typeof value === 'string' && changeIds.includes(value as ChangeId)
+function isLevelId(value: unknown): value is LevelId {
+  return typeof value === 'string' && diLevels.some((level) => level.id === value)
 }
 
-function getInitialProgress(): ChallengeProgress {
+function getInitialProgress(): ModuleProgress {
   try {
     const stored = window.localStorage.getItem(progressKey)
-    if (!stored) return emptyProgress
+    if (!stored) return createProgress()
 
     const value: unknown = JSON.parse(stored)
-    if (!isRecord(value)) return emptyProgress
+    if (!isRecord(value)) return createProgress()
 
-    const selectedChanges = Array.isArray(value.selectedChanges)
-      ? value.selectedChanges.filter(isChangeId)
+    const currentLevelId = isLevelId(value.currentLevelId) ? value.currentLevelId : diLevels[0].id
+    const currentLevel = diLevels.find((level) => level.id === currentLevelId) ?? diLevels[0]
+    const selectedOptionIds = Array.isArray(value.selectedOptionIds)
+      ? value.selectedOptionIds.filter((id): id is string =>
+          typeof id === 'string' && currentLevel.choices.some((choice) => choice.id === id),
+        )
+      : []
+    const completedLevelIds = Array.isArray(value.completedLevelIds)
+      ? value.completedLevelIds.filter(isLevelId)
       : []
     const testResult: TestResult = value.testResult === 'passed' || value.testResult === 'incomplete'
       ? value.testResult
       : null
 
     return {
-      started: value.started === true || selectedChanges.length > 0 || testResult !== null,
-      selectedChanges,
+      started: value.started === true || completedLevelIds.length > 0 || selectedOptionIds.length > 0,
+      currentLevelId,
+      selectedOptionIds,
       testResult,
+      completedLevelIds,
+      moduleComplete: value.moduleComplete === true && completedLevelIds.length === diLevels.length,
     }
   } catch {
-    return emptyProgress
+    return createProgress()
   }
 }
 
@@ -67,8 +86,10 @@ function App() {
   const [view, setView] = useState<View>('landing')
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
-  const [progress, setProgress] = useState<ChallengeProgress>(getInitialProgress)
+  const [progress, setProgress] = useState<ModuleProgress>(getInitialProgress)
   const copy = translations[language]
+  const levelIndex = Math.max(0, diLevels.findIndex(({ id }) => id === progress.currentLevelId))
+  const level = diLevels[levelIndex]
 
   useEffect(() => {
     document.documentElement.lang = language
@@ -98,38 +119,74 @@ function App() {
     try {
       window.localStorage.setItem(progressKey, JSON.stringify(progress))
     } catch {
-      // The challenge still works for this session if storage is unavailable.
+      // The module still works for this session if storage is unavailable.
     }
   }, [progress])
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [view])
+  }, [view, progress.currentLevelId])
 
-  function startChallenge() {
-    setProgress((current) => ({ ...current, started: true }))
+  function startOrReviewModule() {
+    if (progress.moduleComplete) setProgress(createProgress(true))
+    else setProgress((current) => ({ ...current, started: true }))
     setView('challenge')
   }
 
-  function toggleChange(changeId: ChangeId) {
-    setProgress((current) => ({
-      started: true,
-      selectedChanges: current.selectedChanges.includes(changeId)
-        ? current.selectedChanges.filter((selected) => selected !== changeId)
-        : [...current.selectedChanges, changeId],
-      testResult: null,
-    }))
-  }
-
-  function resetChallenge() {
-    setProgress({ started: true, selectedChanges: [], testResult: null })
-  }
-
-  function runTest() {
+  function toggleOption(optionId: string) {
     setProgress((current) => ({
       ...current,
       started: true,
-      testResult: changeIds.every((id) => current.selectedChanges.includes(id)) ? 'passed' : 'incomplete',
+      selectedOptionIds: current.selectedOptionIds.includes(optionId)
+        ? current.selectedOptionIds.filter((selected) => selected !== optionId)
+        : [...current.selectedOptionIds, optionId],
+      testResult: null,
+      completedLevelIds: current.completedLevelIds.filter((id) => id !== current.currentLevelId),
+      moduleComplete: false,
+    }))
+  }
+
+  function resetCurrentLevel() {
+    setProgress((current) => ({
+      ...current,
+      started: true,
+      selectedOptionIds: [],
+      testResult: null,
+      completedLevelIds: current.completedLevelIds.filter((id) => id !== current.currentLevelId),
+      moduleComplete: false,
+    }))
+  }
+
+  function runCheck() {
+    setProgress((current) => {
+      const activeLevel = diLevels.find(({ id }) => id === current.currentLevelId) ?? diLevels[0]
+      const passed =
+        current.selectedOptionIds.length === activeLevel.correctChoiceIds.length &&
+        activeLevel.correctChoiceIds.every((id) => current.selectedOptionIds.includes(id))
+      const completedLevelIds = passed && !current.completedLevelIds.includes(activeLevel.id)
+        ? [...current.completedLevelIds, activeLevel.id]
+        : current.completedLevelIds
+
+      return {
+        ...current,
+        started: true,
+        testResult: passed ? 'passed' : 'incomplete',
+        completedLevelIds,
+        moduleComplete: completedLevelIds.length === diLevels.length,
+      }
+    })
+  }
+
+  function advanceLevel() {
+    const nextLevel = diLevels[levelIndex + 1]
+    if (!nextLevel) return
+
+    setProgress((current) => ({
+      ...current,
+      currentLevelId: nextLevel.id,
+      selectedOptionIds: [],
+      testResult: null,
+      started: true,
     }))
   }
 
@@ -140,21 +197,32 @@ function App() {
         language={language}
         onHome={() => setView('landing')}
         onLanguageChange={setLanguage}
-        onReset={resetChallenge}
+        onReset={resetCurrentLevel}
         onThemeToggle={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
         showReset={view === 'challenge'}
         theme={theme}
       />
 
       {view === 'landing' ? (
-        <LandingPage copy={copy.landing} hasStarted={progress.started} onStart={startChallenge} />
+        <LandingPage
+          copy={copy.landing}
+          hasStarted={progress.started}
+          moduleComplete={progress.moduleComplete}
+          onStart={startOrReviewModule}
+        />
       ) : (
         <ChallengePage
           copy={copy}
-          onRunTest={runTest}
-          onToggleChange={toggleChange}
-          selectedChanges={progress.selectedChanges}
+          level={level}
+          levelCopy={copy.levels[level.id]}
+          levelNumber={levelIndex + 1}
+          onFinishModule={() => setView('landing')}
+          onNextLevel={advanceLevel}
+          onRunTest={runCheck}
+          onToggleOption={toggleOption}
+          selectedOptionIds={progress.selectedOptionIds}
           testResult={progress.testResult}
+          totalLevels={diLevels.length}
         />
       )}
     </div>

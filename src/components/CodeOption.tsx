@@ -1,15 +1,15 @@
-import type { ChangeId } from '../data/challenge'
-import type { AppCopy } from '../i18n/translations'
+import type { LevelOptionCopy } from '../i18n/translations'
 import styles from './CodeOption.module.css'
 
 type CodeOptionProps = {
-  change: AppCopy['options'][ChangeId]
+  change: LevelOptionCopy
+  step: string
   code: string
   selected: boolean
   onSelect: () => void
 }
 
-export function CodeOption({ change, code, selected, onSelect }: CodeOptionProps) {
+export function CodeOption({ change, step, code, selected, onSelect }: CodeOptionProps) {
   return (
     <button
       aria-pressed={selected}
@@ -18,7 +18,7 @@ export function CodeOption({ change, code, selected, onSelect }: CodeOptionProps
       type="button"
     >
       <span className={styles.meta}>
-        <span>{change.step}</span>
+        <span>{step}</span>
         <span>{change.category}</span>
         <span className={styles.toggle} aria-hidden="true">{selected ? '✓' : '+'}</span>
       </span>
