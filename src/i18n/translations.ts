@@ -10,6 +10,10 @@ export type LevelOptionCopy = {
 }
 
 export type LevelCopy = {
+  conceptTitle: string
+  conceptIntroduction: string
+  conceptWhy: string
+  conceptExample: string
   eyebrow: string
   title: string
   introduction: string
@@ -30,6 +34,12 @@ export type LevelCopy = {
 }
 
 export type ModuleCopy = {
+  conceptViewLabel: string
+  conceptWhyLabel: string
+  conceptExampleLabel: string
+  startExercise: string
+  backToExercise: string
+  reviewConcept: string
   levelPrefix: string
   progressOf: string
   solutionEyebrow: string

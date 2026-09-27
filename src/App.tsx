@@ -124,10 +124,25 @@ function App() {
     setProgress((current) => ({
       ...current,
       currentLevelId: nextLevel.id,
+      challengePhase: 'concept',
+      hasEnteredExercise: false,
       selectedOptionIds: [],
       testResult: null,
       started: true,
     }))
+  }
+
+  function advanceToExercise() {
+    setProgress((current) => ({
+      ...current,
+      started: true,
+      challengePhase: 'exercise',
+      hasEnteredExercise: true,
+    }))
+  }
+
+  function reviewConcept() {
+    setProgress((current) => ({ ...current, challengePhase: 'concept' }))
   }
 
   return (
@@ -169,10 +184,14 @@ function App() {
           level={level}
           levelCopy={copy.levels[level.id]}
           levelNumber={levelIndex + 1}
+          isConceptView={progress.challengePhase === 'concept'}
+          hasEnteredExercise={progress.hasEnteredExercise}
           onFinishModule={() => setView('landing')}
           onNextLevel={advanceLevel}
           onRunTest={runCheck}
           onToggleOption={toggleOption}
+          onAdvanceToExercise={advanceToExercise}
+          onReviewConcept={reviewConcept}
           selectedOptionIds={progress.selectedOptionIds}
           testResult={progress.testResult}
           totalLevels={diLevels.length}

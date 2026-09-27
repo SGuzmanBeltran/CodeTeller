@@ -1,7 +1,47 @@
 import styles from './MissionPanel.module.css'
-import type { LevelCopy } from '../i18n/translations'
+import type { LevelCopy, ModuleCopy } from '../i18n/translations'
 
-export function MissionPanel({ copy }: { copy: LevelCopy }) {
+type MissionPanelProps = {
+  copy: LevelCopy
+  moduleCopy: ModuleCopy
+  isConceptView: boolean
+  hasEnteredExercise: boolean
+  onAdvanceToExercise: () => void
+  onReviewConcept: () => void
+}
+
+export function MissionPanel({
+  copy,
+  moduleCopy,
+  isConceptView,
+  hasEnteredExercise,
+  onAdvanceToExercise,
+  onReviewConcept,
+}: MissionPanelProps) {
+  if (isConceptView) {
+    return (
+      <aside className={styles.panel} aria-labelledby="mission-title">
+        <p className={styles.eyebrow}>{copy.eyebrow} <span>·</span> {moduleCopy.conceptViewLabel}</p>
+        <h1 id="mission-title">{copy.conceptTitle}</h1>
+        <p className={styles.intro}>{copy.conceptIntroduction}</p>
+
+        <section className={styles.objective} aria-label={moduleCopy.conceptWhyLabel}>
+          <p className={styles.label}>{moduleCopy.conceptWhyLabel}</p>
+          <p>{copy.conceptWhy}</p>
+        </section>
+
+        <section className={styles.concepts} aria-label={moduleCopy.conceptExampleLabel}>
+          <p className={styles.label}>{moduleCopy.conceptExampleLabel}</p>
+          <pre className={styles.supportingCode}><code>{copy.conceptExample}</code></pre>
+        </section>
+
+        <button className={styles.advance} onClick={onAdvanceToExercise} type="button">
+          {hasEnteredExercise ? moduleCopy.backToExercise : moduleCopy.startExercise}
+        </button>
+      </aside>
+    )
+  }
+
   return (
     <aside className={styles.panel} aria-labelledby="mission-title">
       <p className={styles.eyebrow}>{copy.eyebrow}</p>
@@ -29,6 +69,10 @@ export function MissionPanel({ copy }: { copy: LevelCopy }) {
         <summary>{copy.hintLabel}</summary>
         <p>{copy.hint}</p>
       </details>
+
+      <button className={styles.reviewConcept} onClick={onReviewConcept} type="button">
+        {moduleCopy.reviewConcept}
+      </button>
     </aside>
   )
 }

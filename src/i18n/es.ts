@@ -38,6 +38,12 @@ export const es = {
     reflectionNote: 'No se califica ni se ejecuta tu respuesta. Úsala para comprobar qué ideas puedes explicar sin pistas.',
   },
   module: {
+    conceptViewLabel: 'CONCEPTO',
+    conceptWhyLabel: 'POR QUÉ SIRVE AQUÍ',
+    conceptExampleLabel: 'EJEMPLO',
+    startExercise: 'Avanzar al ejercicio',
+    backToExercise: 'Volver al ejercicio',
+    reviewConcept: 'Volver a consultar el concepto',
     levelPrefix: 'RETO',
     progressOf: 'de',
     solutionEyebrow: 'PRUEBA TU SOLUCIÓN',
@@ -125,6 +131,11 @@ export const es = {
   },
   levels: {
     'constructor-injection': {
+      conceptTitle: 'Recibir el cliente en vez de crearlo',
+      conceptIntroduction: 'Inyección por constructor significa que OrderService no crea lo que necesita: lo recibe como argumento en __init__ y lo guarda para usarlo después.',
+      conceptWhy: 'Aquí sirve para que OrderService deje de decidir la URL, la configuración o cuándo se crea MongoClient. Quien crea el servicio elige el cliente y puede reutilizarlo o cambiarlo sin tocar la lógica de pedidos. El servicio todavía usa la API de MongoDB; solo la creación se movió fuera.',
+      conceptExample: `def __init__(self, client: MongoClient):
+    self.client = client  # llega desde fuera`,
       eyebrow: 'RETO 01 · RECIBIR EL CLIENTE',
       title: 'El servicio crea su propio cliente MongoDB',
       introduction: 'OrderService crea un MongoClient dentro de __init__. Después, place usa ese cliente para guardar cada pedido en shop.orders. Así la clase hace dos trabajos: gestionar pedidos y crear el cliente. Además, quien la llama no puede elegir otro cliente sin modificar OrderService.',
@@ -147,11 +158,16 @@ export const es = {
       },
     },
     'storage-adapter': {
+      conceptTitle: 'Separar quién guarda los pedidos',
+      conceptIntroduction: 'Separar responsabilidades significa que cada pieza hace un solo trabajo: OrderService coloca pedidos y MongoOrderStorage sabe cómo guardarlos en MongoDB.',
+      conceptWhy: 'Aquí sirve porque OrderService ya recibe el cliente, pero todavía elige la colección shop.orders y llama a insert_one. Al mover ese código al adaptador y recibir el adaptador desde fuera, el servicio deja de hablar MongoDB y el guardado se puede reutilizar o probar con otro storage.',
+      conceptExample: `storage.save(order)  # el servicio pide guardar;
+# MongoOrderStorage hace insert_one dentro`,
       eyebrow: 'RETO 02 · SEPARAR Y RECIBIR',
       title: 'El servicio habla el idioma de MongoDB',
-      introduction: 'OrderService coloca pedidos insertando documentos en una colección de MongoDB con un cliente que crea él mismo. Negocio e infraestructura comparten el mismo método: probar pedidos exige MongoDB o simular su cliente, y esa lógica no se puede reutilizar con otro almacenamiento.',
+      introduction: 'OrderService ya recibe MongoClient, pero todavía elige la colección shop.orders y llama a insert_one para guardar cada pedido. Esa lógica de MongoDB sigue dentro del servicio.',
       objectiveLabel: 'OBJETIVO',
-      objective: 'Que OrderService no construya el cliente ni conozca colecciones o llamadas como insert_one.',
+      objective: 'Deja la colección y la llamada insert_one en MongoOrderStorage, y haz que OrderService reciba ese adaptador.',
       conceptLabel: 'IDEA CLAVE',
       conceptTag: 'RESPONSABILIDAD + DI',
       concept: 'Cada pieza habla con lo que necesita: el servicio coloca pedidos, y quien guarda es otra pieza que llega desde afuera.',
@@ -170,6 +186,12 @@ export const es = {
       },
     },
     'composition-root': {
+      conceptTitle: 'Conectar las piezas al iniciar la aplicación',
+      conceptIntroduction: 'El punto de entrada (composition root) es el lugar donde la aplicación crea sus piezas concretas y las conecta antes de empezar a trabajar.',
+      conceptWhy: 'Aquí sirve porque OrderService y MongoOrderStorage ya saben recibir lo que necesitan, pero nadie los estaba creando. Al construir en main.py primero el cliente, luego el storage y luego el servicio, el armado queda en un solo sitio y fuera de la lógica de pedidos.',
+      conceptExample: `client = MongoClient(...)
+storage = MongoOrderStorage(client)
+service = OrderService(storage)`,
       eyebrow: 'RETO 03 · ENSAMBLAJE',
       title: 'Las piezas existen, pero nadie las conecta',
       introduction: 'OrderService recibe MongoOrderStorage y el adaptador recibe MongoClient. Sin embargo, al iniciar la aplicación nadie crea esas piezas ni se las entrega a quien las necesita.',
@@ -195,6 +217,13 @@ export const es = {
       },
     },
     'test-double': {
+      conceptTitle: 'Probar el guardado sin iniciar MongoDB',
+      conceptIntroduction: 'Un doble de prueba es un colaborador falso para el test: guarda en memoria en vez de usar la infraestructura real.',
+      conceptWhy: 'Aquí sirve para probar la validación y el guardado de OrderService sin levantar MongoDB. Como el servicio recibe el storage por el constructor, el test le entrega FakeStorage, llama a place y comprueba qué quedó guardado.',
+      conceptExample: `fake = FakeStorage()
+service = OrderService(fake)
+service.place({"id": "A-1"})
+assert fake.saved == [{"id": "A-1"}]`,
       eyebrow: 'RETO 04 · PRUEBAS',
       title: 'Prueba los pedidos sin iniciar MongoDB',
       introduction: 'Ahora OrderService recibe un storage. Queremos probar que valida y guarda el pedido sin conectar con MongoDB. El enunciado proporciona este contrato y un FakeStorage que conserva los pedidos en memoria:',
@@ -237,6 +266,11 @@ class FakeStorage:
       },
     },
     capstone: {
+      conceptTitle: 'Probar mensajes sin conectarse a la red',
+      conceptIntroduction: 'La misma idea vale en otro dominio: si el servicio recibe su colaborador, producción y pruebas pueden entregarle uno distinto.',
+      conceptWhy: 'Aquí sirve porque NotificationService crea SmtpMailer y el test necesitaría red. Al recibir el mailer, main.py le entrega SmtpMailer en producción y el test le entrega FakeMailer para comprobar destinatario, asunto y cuerpo sin enviar nada.',
+      conceptExample: `service = NotificationService(FakeMailer())
+# en producción sería SmtpMailer()`,
       eyebrow: 'RETO 05 · DESAFÍO INTEGRADOR',
       title: 'Envía correo en producción y pruébalo sin red',
       introduction: 'NotificationService crea SmtpMailer por su cuenta y el test depende de la red. QA quiere probar sin conexión y el equipo podría cambiar de proveedor. Aplica lo aprendido a este caso nuevo. El escenario proporciona el contrato Mailer y este fake:',

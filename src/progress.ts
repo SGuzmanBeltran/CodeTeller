@@ -3,6 +3,8 @@ import { diLevels, type LevelId, type TestResult } from './data/diModule'
 export type ModuleProgress = {
   started: boolean
   currentLevelId: LevelId
+  challengePhase: 'concept' | 'exercise'
+  hasEnteredExercise: boolean
   selectedOptionIds: string[]
   testResult: TestResult
   completedLevelIds: LevelId[]
@@ -27,6 +29,8 @@ export function createProgress(started = false): ModuleProgress {
   return {
     started,
     currentLevelId: diLevels[0].id,
+    challengePhase: 'concept',
+    hasEnteredExercise: false,
     selectedOptionIds: [],
     testResult: null,
     completedLevelIds: [],
@@ -99,6 +103,17 @@ function parseStoredProgress(stored: string, sourceVersion: 'v2' | 'v3' | null):
       : null
     const testResult: TestResult = selectedOptionIds.length > 0 && !selectionWasNormalized ? storedResult : null
 
+    // Older saves predate the concept screen. If the learner had started a
+    // challenge, restore its exercise instead of hiding their saved work.
+    const storedPhase = value.challengePhase === 'concept' || value.challengePhase === 'exercise'
+      ? value.challengePhase
+      : null
+    const challengePhase: ModuleProgress['challengePhase'] = storedPhase
+      ?? (value.started === true || selectedOptionIds.length > 0 || testResult !== null
+        ? 'exercise'
+        : 'concept')
+    const hasEnteredExercise = value.hasEnteredExercise === true || challengePhase === 'exercise'
+
     // Do not let migration skip a newly changed challenge. The test and
     // capstone objectives changed, so their old passes are intentionally reset.
     const firstIncomplete = diLevels.find((level) => !completedLevelIds.includes(level.id))
@@ -113,6 +128,8 @@ function parseStoredProgress(stored: string, sourceVersion: 'v2' | 'v3' | null):
     return {
       started: value.started === true || completedLevelIds.length > 0 || selectedOptionIds.length > 0,
       currentLevelId: safeCurrentLevelId,
+      challengePhase: safeCurrentLevelId === currentLevelId ? challengePhase : 'concept',
+      hasEnteredExercise: safeCurrentLevelId === currentLevelId ? hasEnteredExercise : false,
       selectedOptionIds: safeCurrentLevelId === currentLevelId ? selectedOptionIds : [],
       testResult: safeCurrentLevelId === currentLevelId ? testResult : null,
       completedLevelIds,
